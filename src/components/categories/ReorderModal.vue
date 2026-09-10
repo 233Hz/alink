@@ -224,18 +224,13 @@
             >
               <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <div class="w-7 h-7 sm:w-8 sm:h-8 border border-black dark:border-white flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
-                  <img
-                    v-if="getSiteIconSrc(site)"
-                    :src="getSiteIconSrc(site)"
-                    :alt="site.title"
-                    class="w-4 h-4 sm:w-5 sm:h-5 object-contain"
-                    loading="lazy"
-                    @error="handleIconError(site.id)"
-                  />
-                  <GeneratedIcon
-                    v-else
+                  <WebsiteIcon
+                    :url="site.url"
+                    :icon-url="site.icon_url"
+                    :title="site.title"
                     :seed="site.title + ' ' + (site.url || site.id)"
-                    custom-class="w-4 h-4 sm:w-5 sm:h-5"
+                    img-class="w-4 h-4 sm:w-5 sm:h-5 object-contain"
+                    icon-class="w-4 h-4 sm:w-5 sm:h-5"
                   />
                 </div>
                 <div class="min-w-0 flex-1">
@@ -350,9 +345,8 @@ import {
 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
-import { getWebsiteIconUrl } from '../../utils';
 import DynamicIcon from '../common/DynamicIcon.vue';
-import GeneratedIcon from '../common/GeneratedIcon.vue';
+import WebsiteIcon from '../common/WebsiteIcon.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -370,7 +364,6 @@ const catDropdownRef = ref<HTMLElement | null>(null);
 const saving = ref(false);
 const statusMsg = ref('');
 const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
-const failedIconIds = ref<Set<string>>(new Set());
 
 const currentSelectedCategory = computed(() => {
   return navStore.sortedCategories.find((c) => c.id === selectedWebsiteCatId.value) || null;
@@ -397,15 +390,6 @@ onUnmounted(() => {
   window.removeEventListener('touchstart', handleOutsideClick);
 });
 
-function getSiteIconSrc(site: Website): string {
-  if (failedIconIds.value.has(site.id)) return '';
-  return getWebsiteIconUrl(site);
-}
-
-function handleIconError(siteId: string) {
-  failedIconIds.value.add(siteId);
-}
-
 const localCategories = ref<Category[]>([]);
 const localWebsites = ref<Website[]>([]);
 
@@ -414,7 +398,6 @@ watch(
   (open) => {
     if (open) {
       statusMsg.value = '';
-      failedIconIds.value.clear();
       isCatDropdownOpen.value = false;
       localCategories.value = JSON.parse(JSON.stringify(navStore.sortedCategories));
       localWebsites.value = JSON.parse(JSON.stringify(navStore.sortedWebsites));

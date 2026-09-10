@@ -14,18 +14,13 @@
       <div
         class="w-12 h-12 sm:w-14 sm:h-14 border-2 border-black dark:border-white rounded-none bg-white flex items-center justify-center overflow-hidden p-1"
       >
-        <img
-          v-if="iconSrc && !imgFailed"
-          :src="iconSrc"
-          :alt="website.title"
-          class="w-7 h-7 sm:w-8 sm:h-8 object-contain"
-          loading="lazy"
-          @error="handleImgError"
-        />
-        <GeneratedIcon
-          v-else
+        <WebsiteIcon
+          :url="website.url"
+          :icon-url="website.icon_url"
+          :title="website.title"
           :seed="website.title + ' ' + (website.url || website.id)"
-          custom-class="w-7 h-7 sm:w-8 sm:h-8"
+          img-class="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+          icon-class="w-7 h-7 sm:w-8 sm:h-8"
         />
       </div>
     </a>
@@ -138,8 +133,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ExternalLink, MoreVertical, Pencil, Trash2, ArrowUp, ArrowDown } from '@lucide/vue';
 import type { Website } from '../../types';
-import { normalizeUrl, getFaviconUrl } from '../../utils';
-import GeneratedIcon from '../common/GeneratedIcon.vue';
+import { normalizeUrl } from '../../utils';
+import WebsiteIcon from '../common/WebsiteIcon.vue';
 
 const props = defineProps<{
   website: Website;
@@ -155,26 +150,9 @@ const emit = defineEmits<{
 }>();
 
 const isMenuOpen = ref(false);
-const imgFailed = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
 
 const normalizedUrl = computed(() => normalizeUrl(props.website.url));
-
-const iconSrc = computed(() => {
-  if (imgFailed.value) return '';
-  if (
-    props.website.icon_url &&
-    props.website.icon_url.trim() &&
-    !props.website.icon_url.endsWith('/favicon.ico')
-  ) {
-    return props.website.icon_url.trim();
-  }
-  return getFaviconUrl(props.website.url);
-});
-
-function handleImgError() {
-  imgFailed.value = true;
-}
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;

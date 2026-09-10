@@ -39,8 +39,55 @@ export function extractDomain(rawUrl: string): string {
 export function getFaviconUrl(rawUrl: string): string {
   const domain = extractDomain(rawUrl);
   if (!domain) return '';
-  // Google's 128px high-res favicon service
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+  // Cravatar domestic high-availability favicon service
+  return `https://cn.cravatar.com/favicon/api/index.php?url=${encodeURIComponent(domain)}`;
+}
+
+/**
+ * 获取多级兜底 Favicon 候选地址列表
+ * 优先级：
+ * 0. 自定义图标链接（若有效且非默认兜底）
+ * 1. Cravatar 国内高速源 (推荐国内直连)
+ * 2. Icon Horse (Cloudflare 全球 CDN)
+ * 3. DuckDuckGo (国外公共图标源)
+ * 4. 目标网站根目录 /favicon.ico 直链
+ * 5. Google S2 高清服务 (海外/代理环境)
+ */
+export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | null): string[] {
+  const candidates: string[] = [];
+
+  // Tier 0: 用户自定义图标
+  if (
+    customIconUrl &&
+    customIconUrl.trim() &&
+    !customIconUrl.endsWith('/favicon.ico')
+  ) {
+    candidates.push(customIconUrl.trim());
+  }
+
+  const domain = extractDomain(rawUrl);
+  if (!domain) {
+    return candidates;
+  }
+
+  const encodedDomain = encodeURIComponent(domain);
+
+  // Tier 1: Cravatar 国内源 (免翻墙，延迟低，支持各类域名)
+  candidates.push(`https://cn.cravatar.com/favicon/api/index.php?url=${encodedDomain}`);
+
+  // Tier 2: Icon Horse 全球 CDN 加速
+  candidates.push(`https://icon.horse/icon/${encodedDomain}`);
+
+  // Tier 3: DuckDuckGo 公共源
+  candidates.push(`https://icons.duckduckgo.com/ip3/${encodedDomain}.ico`);
+
+  // Tier 4: 源站根目录直链
+  candidates.push(`https://${domain}/favicon.ico`);
+
+  // Tier 5: Google S2 128px (海外/代理环境备用)
+  candidates.push(`https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=128`);
+
+  return Array.from(new Set(candidates));
 }
 
 export function getWebsiteIconUrl(website: { icon_url?: string | null; url: string }): string {

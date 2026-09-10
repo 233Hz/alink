@@ -122,17 +122,13 @@
             <div
               class="w-10 h-10 border-2 border-black dark:border-white bg-white flex items-center justify-center flex-shrink-0 rounded-none p-1"
             >
-              <img
-                v-if="previewIconSrc && !previewIconFailed"
-                :src="previewIconSrc"
-                alt="Preview"
-                class="w-6 h-6 object-contain"
-                @error="previewIconFailed = true"
-              />
-              <GeneratedIcon
-                v-else
+              <WebsiteIcon
+                :url="form.url"
+                :icon-url="form.icon_url"
+                :title="form.title || '图标预览'"
                 :seed="form.title || form.url || 'ALink'"
-                custom-class="w-6 h-6"
+                img-class="w-6 h-6 object-contain"
+                icon-class="w-6 h-6"
               />
             </div>
             <input
@@ -223,13 +219,12 @@ import {
   normalizeUrl,
   suggestTitleFromUrl,
   crawlWebsiteTitle,
-  getFaviconUrl,
   getRandomGeneratedIconDataUrl,
   getRandomDiceBearAvatarUrl,
   DICEBEAR_STYLES,
   type DiceBearStyle,
 } from '../../utils';
-import GeneratedIcon from '../common/GeneratedIcon.vue';
+import WebsiteIcon from '../common/WebsiteIcon.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -246,7 +241,6 @@ const navStore = useNavStore();
 const submitting = ref(false);
 const fetchingTitle = ref(false);
 const errorMsg = ref('');
-const previewIconFailed = ref(false);
 
 const isEditing = computed(() => !!props.websiteToEdit);
 
@@ -264,7 +258,6 @@ watch(
   (open) => {
     if (open) {
       errorMsg.value = '';
-      previewIconFailed.value = false;
       if (props.websiteToEdit) {
         form.title = props.websiteToEdit.title;
         form.url = props.websiteToEdit.url;
@@ -284,24 +277,6 @@ watch(
   }
 );
 
-watch(
-  () => form.icon_url,
-  () => {
-    previewIconFailed.value = false;
-  }
-);
-
-const previewIconSrc = computed(() => {
-  if (previewIconFailed.value) return '';
-  if (form.icon_url && form.icon_url.trim()) {
-    return form.icon_url.trim();
-  }
-  if (form.url && form.url.trim()) {
-    return getFaviconUrl(form.url);
-  }
-  return '';
-});
-
 async function handleUrlBlur() {
   if (form.url.trim()) {
     form.url = normalizeUrl(form.url);
@@ -309,7 +284,6 @@ async function handleUrlBlur() {
       form.title = suggestTitleFromUrl(form.url);
       await fetchAndApplyTitle(false);
     }
-    previewIconFailed.value = false;
   }
 }
 
@@ -320,7 +294,6 @@ async function autoFillFromUrl(force = false) {
     form.title = suggestTitleFromUrl(form.url);
   }
   form.icon_url = '';
-  previewIconFailed.value = false;
   await fetchAndApplyTitle(force);
 }
 
@@ -344,23 +317,19 @@ async function fetchAndApplyTitle(force = false) {
 function rollRandomIcon() {
   const seed = form.title || form.url || 'alink';
   form.icon_url = getRandomDiceBearAvatarUrl(seed);
-  previewIconFailed.value = false;
 }
 
 function applyGenerativeStyle(style: DiceBearStyle) {
   const seed = form.title || form.url || 'alink';
   form.icon_url = getRandomDiceBearAvatarUrl(seed, style);
-  previewIconFailed.value = false;
 }
 
 function applyLocalSvg() {
   form.icon_url = getRandomGeneratedIconDataUrl();
-  previewIconFailed.value = false;
 }
 
 function clearCustomIcon() {
   form.icon_url = '';
-  previewIconFailed.value = false;
 }
 
 async function handleSubmit() {
