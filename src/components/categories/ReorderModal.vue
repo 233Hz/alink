@@ -141,22 +141,61 @@
         <div v-else class="space-y-4">
           <!-- Category Filter inside Website Sorting -->
           <div class="flex items-center gap-3">
-            <label class="text-xs font-bold uppercase tracking-wider">
+            <label class="text-xs font-bold uppercase tracking-wider flex-shrink-0">
               选择分类：
             </label>
-            <select
-              v-model="selectedWebsiteCatId"
-              class="border-2 border-black dark:border-white px-3 py-1.5 text-xs bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
-            >
-              <option
-                v-for="c in navStore.sortedCategories"
-                :key="c.id"
-                :value="c.id"
+            <div class="relative" ref="catDropdownRef">
+              <button
+                type="button"
+                @click.stop="isCatDropdownOpen = !isCatDropdownOpen"
+                class="border-2 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white px-3 py-1.5 text-xs font-bold flex items-center justify-between gap-3 min-w-[150px] sm:min-w-[170px] rounded-none hover:border-[#ff3366] transition-colors select-none"
               >
-                {{ c.name }}
-              </option>
-              <option value="__UNCAT__">未分类</option>
-            </select>
+                <div class="flex items-center gap-2 min-w-0 truncate">
+                  <DynamicIcon
+                    v-if="currentSelectedCategory"
+                    :icon="currentSelectedCategory.icon"
+                    :size="14"
+                    custom-class="w-3.5 h-3.5 flex-shrink-0"
+                  />
+                  <span class="truncate">
+                    {{ currentSelectedCategory ? currentSelectedCategory.name : '暂无分类' }}
+                  </span>
+                </div>
+                <ChevronDown
+                  class="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200"
+                  :class="{ 'rotate-180': isCatDropdownOpen }"
+                />
+              </button>
+
+              <!-- Custom Minimalist Flat Dropdown Menu -->
+              <div
+                v-if="isCatDropdownOpen"
+                @click.stop
+                class="absolute left-0 top-full mt-1 w-full min-w-[180px] max-h-60 overflow-y-auto bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none z-30 py-1"
+              >
+                <button
+                  v-for="c in navStore.sortedCategories"
+                  :key="c.id"
+                  type="button"
+                  @click="selectCategory(c.id)"
+                  :class="[
+                    'w-full px-3 py-2 text-left text-xs font-bold flex items-center justify-between gap-2 transition-colors duration-150',
+                    c.id === selectedWebsiteCatId
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
+                  ]"
+                >
+                  <div class="flex items-center gap-2 min-w-0 truncate">
+                    <DynamicIcon :icon="c.icon" :size="14" custom-class="w-3.5 h-3.5 flex-shrink-0" />
+                    <span class="truncate">{{ c.name }}</span>
+                  </div>
+                  <Check v-if="c.id === selectedWebsiteCatId" class="w-3.5 h-3.5 flex-shrink-0 text-[#ff3366]" />
+                </button>
+                <div v-if="navStore.sortedCategories.length === 0" class="px-3 py-2 text-xs font-mono text-gray-500 text-center">
+                  暂无自定义分类
+                </div>
+              </div>
+            </div>
           </div>
 
           <div v-if="filteredLocalWebsites.length > 0" class="space-y-2">
@@ -276,8 +315,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { ArrowUpDown, X, Folder, Globe, ArrowUp, ArrowDown, Loader2, CheckCircle2, AlertCircle } from '@lucide/vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import {
+  ArrowUpDown,
+  X,
+  Folder,
+  Globe,
+  ArrowUp,
+  ArrowDown,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  Check,
+} from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
 import { getWebsiteIconUrl } from '../../utils';
@@ -294,11 +345,36 @@ const emit = defineEmits<{
 
 const navStore = useNavStore();
 const activeTab = ref<'categories' | 'websites'>('categories');
-const selectedWebsiteCatId = ref<string>('__UNCAT__');
+const selectedWebsiteCatId = ref<string>('');
+const isCatDropdownOpen = ref(false);
+const catDropdownRef = ref<HTMLElement | null>(null);
 const saving = ref(false);
 const statusMsg = ref('');
 const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
 const failedIconIds = ref<Set<string>>(new Set());
+
+const currentSelectedCategory = computed(() => {
+  return navStore.sortedCategories.find((c) => c.id === selectedWebsiteCatId.value) || null;
+});
+
+function selectCategory(catId: string) {
+  selectedWebsiteCatId.value = catId;
+  isCatDropdownOpen.value = false;
+}
+
+function handleOutsideClick(e: MouseEvent) {
+  if (catDropdownRef.value && !catDropdownRef.value.contains(e.target as Node)) {
+    isCatDropdownOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleOutsideClick);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleOutsideClick);
+});
 
 function getSiteIconSrc(site: Website): string {
   if (failedIconIds.value.has(site.id)) return '';
@@ -318,10 +394,11 @@ watch(
     if (open) {
       statusMsg.value = '';
       failedIconIds.value.clear();
+      isCatDropdownOpen.value = false;
       localCategories.value = JSON.parse(JSON.stringify(navStore.sortedCategories));
       localWebsites.value = JSON.parse(JSON.stringify(navStore.sortedWebsites));
 
-      // Default to active category if valid, or first category, or uncat
+      // Default to active category if valid, or first category
       if (
         navStore.activeCategoryId &&
         navStore.activeCategoryId !== 'ALL' &&
@@ -329,21 +406,17 @@ watch(
         navStore.sortedCategories.some((c) => c.id === navStore.activeCategoryId)
       ) {
         selectedWebsiteCatId.value = navStore.activeCategoryId;
-      } else if (navStore.activeCategoryId === 'UNCATEGORIZED') {
-        selectedWebsiteCatId.value = '__UNCAT__';
       } else if (navStore.sortedCategories.length > 0) {
         selectedWebsiteCatId.value = navStore.sortedCategories[0].id;
       } else {
-        selectedWebsiteCatId.value = '__UNCAT__';
+        selectedWebsiteCatId.value = '';
       }
     }
   }
 );
 
 const filteredLocalWebsites = computed(() => {
-  if (selectedWebsiteCatId.value === '__UNCAT__') {
-    return localWebsites.value.filter((w) => !w.category_id);
-  }
+  if (!selectedWebsiteCatId.value) return [];
   return localWebsites.value.filter((w) => w.category_id === selectedWebsiteCatId.value);
 });
 
