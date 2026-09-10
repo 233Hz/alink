@@ -20,10 +20,10 @@
           A
         </div>
         <h3 class="text-lg sm:text-xl font-bold tracking-tight uppercase">
-          {{ isSignUp ? '创建 ALink 账号' : '登录 ALink 账号' }}
+          {{ isResetMode ? '重置 ALink 密码' : (isSignUp ? '创建 ALink 账号' : '登录 ALink 账号') }}
         </h3>
         <p class="text-xs font-mono text-gray-500 mt-1">
-          {{ isSignUp ? '注册账号即可拥有专属云端书签与分类' : '登录后管理你的专属分类与收藏网址' }}
+          {{ isResetMode ? '输入注册邮箱，我们将向你发送密码重置链接' : (isSignUp ? '注册账号即可拥有专属云端书签与分类' : '登录后管理你的专属分类与收藏网址') }}
         </p>
       </div>
 
@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <div>
+        <div v-if="!isResetMode">
           <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             密码
           </label>
@@ -54,7 +54,7 @@
             <input
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
-              required
+              :required="!isResetMode"
               minlength="6"
               placeholder="至少 6 位密码"
               class="w-full pl-7 pr-8 py-2 text-sm border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] transition-colors placeholder:text-gray-400"
@@ -68,6 +68,17 @@
               <Eye v-else class="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        <!-- Forgot Password Link for Login Mode -->
+        <div v-if="!isSignUp && !isResetMode" class="text-right -mt-2">
+          <button
+            type="button"
+            @click="isResetMode = true; errorMsg = ''; successMsg = '';"
+            class="text-[11px] text-gray-500 hover:text-[#ff3366] transition-colors"
+          >
+            忘记密码？
+          </button>
         </div>
 
         <!-- Feedback Alert -->
@@ -85,11 +96,21 @@
           class="w-full py-3 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black border-2 border-black dark:border-white hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center justify-center gap-2"
         >
           <Loader2 v-if="submitting" class="w-3.5 h-3.5 animate-spin" />
-          <span>{{ isSignUp ? '立即注册' : '登 录' }}</span>
+          <span>{{ isResetMode ? '发送重置密码邮件' : (isSignUp ? '立即注册' : '登 录') }}</span>
         </button>
 
         <!-- Mode Toggle -->
-        <div class="text-center text-xs text-gray-500 pt-1">
+        <div v-if="isResetMode" class="text-center text-xs text-gray-500 pt-1">
+          <span>记起密码了？</span>
+          <button
+            type="button"
+            @click="isResetMode = false; errorMsg = ''; successMsg = '';"
+            class="ml-1 font-bold text-black dark:text-white hover:text-[#ff3366] underline transition-colors"
+          >
+            返回登录
+          </button>
+        </div>
+        <div v-else class="text-center text-xs text-gray-500 pt-1">
           <span>{{ isSignUp ? '已有账号？' : '还没有账号？' }}</span>
           <button
             type="button"
@@ -122,6 +143,7 @@ const authStore = useAuthStore();
 const navStore = useNavStore();
 
 const isSignUp = ref(false);
+const isResetMode = ref(false);
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
@@ -133,6 +155,7 @@ watch(
   () => props.isOpen,
   (open) => {
     if (open) {
+      isResetMode.value = false;
       errorMsg.value = '';
       successMsg.value = '';
     }
@@ -140,14 +163,18 @@ watch(
 );
 
 async function handleSubmit() {
-  if (!email.value || !password.value) return;
+  if (!email.value) return;
+  if (!isResetMode.value && !password.value) return;
 
   try {
     submitting.value = true;
     errorMsg.value = '';
     successMsg.value = '';
 
-    if (isSignUp.value) {
+    if (isResetMode.value) {
+      await authStore.resetPasswordForEmail(email.value);
+      successMsg.value = '重置密码链接已发送至邮箱，请查收邮件并根据提示重置！';
+    } else if (isSignUp.value) {
       await authStore.signUp(email.value, password.value);
       successMsg.value = '注册成功！正在进入系统...';
       await navStore.fetchData();

@@ -104,6 +104,13 @@
               </p>
             </div>
             <button
+              @click="isUserMenuOpen = false; emit('open-change-password')"
+              class="w-full px-3 py-2 text-left text-xs font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center gap-2 transition-colors duration-200 mb-1"
+            >
+              <KeyRound class="w-3.5 h-3.5" />
+              修改密码
+            </button>
+            <button
               @click="handleSignOut"
               class="w-full px-3 py-2 text-left text-xs font-bold text-[#ff3366] hover:bg-[#ff3366] hover:text-white flex items-center gap-2 transition-colors duration-200"
             >
@@ -140,6 +147,7 @@ import {
   Moon,
   User,
   LogOut,
+  KeyRound,
 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import { useThemeStore } from '../../stores/theme';
@@ -150,6 +158,7 @@ const emit = defineEmits<{
   (e: 'open-add-website'): void;
   (e: 'open-reorder'): void;
   (e: 'open-auth'): void;
+  (e: 'open-change-password'): void;
 }>();
 
 const navStore = useNavStore();

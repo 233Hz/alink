@@ -6,6 +6,7 @@
       @open-add-website="openAddWebsiteModal(null)"
       @open-reorder="handleOpenReorder"
       @open-auth="isAuthModalOpen = true"
+      @open-change-password="isChangePasswordModalOpen = true"
     />
 
     <!-- Mobile Top Category Pills -->
@@ -99,6 +100,11 @@
       :is-open="isAuthModalOpen"
       @close="isAuthModalOpen = false"
     />
+
+    <ChangePasswordModal
+      :is-open="isChangePasswordModalOpen"
+      @close="isChangePasswordModalOpen = false"
+    />
   </div>
 </template>
 
@@ -120,6 +126,7 @@ import CategoryModal from './components/categories/CategoryModal.vue';
 import DeleteCategoryDialog from './components/categories/DeleteCategoryDialog.vue';
 import ReorderModal from './components/categories/ReorderModal.vue';
 import AuthModal from './components/auth/AuthModal.vue';
+import ChangePasswordModal from './components/auth/ChangePasswordModal.vue';
 
 const navStore = useNavStore();
 const themeStore = useThemeStore();
@@ -132,6 +139,7 @@ const isCategoryModalOpen = ref(false);
 const isDeleteCategoryOpen = ref(false);
 const isReorderModalOpen = ref(false);
 const isAuthModalOpen = ref(false);
+const isChangePasswordModalOpen = ref(false);
 
 const websiteToEdit = ref<Website | null>(null);
 const defaultWebsiteCategoryId = ref<string | null>(null);

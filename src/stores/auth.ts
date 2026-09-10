@@ -81,6 +81,26 @@ export const useAuthStore = defineStore('auth', () => {
     return data;
   }
 
+  async function updatePassword(newPassword: string) {
+    await ensureSession();
+    if (!isAuthenticated.value || !user.value) {
+      throw new Error('用户未登录或登录已失效，请重新登录');
+    }
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    return data;
+  }
+
+  async function resetPasswordForEmail(email: string) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin + window.location.pathname,
+    });
+    if (error) throw error;
+    return data;
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     user.value = null;
@@ -98,5 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signUp,
     signOut,
+    updatePassword,
+    resetPasswordForEmail,
   };
 });
