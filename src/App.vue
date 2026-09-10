@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white transition-colors">
+  <div class="h-screen h-[100dvh] flex flex-col bg-white dark:bg-black text-black dark:text-white transition-colors overflow-hidden">
     <!-- Navbar -->
     <Navbar
       @toggle-mobile-sidebar="isMobileDrawerOpen = true"
@@ -13,9 +13,9 @@
     <MobileCategoryNav />
 
     <!-- Main Container: Sidebar + Content -->
-    <div class="flex-1 flex w-full overflow-hidden">
-      <!-- Desktop Sidebar -->
-      <div class="hidden md:block flex-shrink-0">
+    <div class="flex-1 flex w-full min-h-0 overflow-hidden">
+      <!-- Desktop Sidebar (Fixed height to viewport, scrolls internally) -->
+      <div class="hidden md:block flex-shrink-0 h-full overflow-hidden">
         <Sidebar
           @add-category="openAddCategoryModal"
           @edit-category="openEditCategoryModal"
@@ -23,8 +23,8 @@
         />
       </div>
 
-      <!-- Main Content Area -->
-      <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
+      <!-- Main Content Area (Independent scroll) -->
+      <main class="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-10">
         <!-- Global Loading Indicator -->
         <div v-if="navStore.loading && navStore.websites.length === 0" class="flex flex-col items-center justify-center py-32">
           <Loader2 class="w-8 h-8 animate-spin mb-3 text-black dark:text-white" />

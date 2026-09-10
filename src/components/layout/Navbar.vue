@@ -1,6 +1,6 @@
 <template>
   <header
-    class="sticky top-0 z-40 w-full bg-white dark:bg-black text-black dark:text-white border-b-2 border-black dark:border-white transition-colors"
+    class="sticky top-0 z-40 w-full bg-white dark:bg-black text-black dark:text-white border-b-2 border-black dark:border-white transition-colors flex-shrink-0"
   >
     <div class="w-full px-4 md:px-8 h-16 flex items-center justify-between gap-4">
       <!-- Left: Mobile Menu Toggle & Brand Logo -->

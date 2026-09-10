@@ -1,12 +1,12 @@
 <template>
   <aside
     :class="[
-      'h-full flex flex-col bg-white dark:bg-black text-black dark:text-white border-r-2 border-black dark:border-white select-none transition-all duration-200',
+      'h-full flex flex-col bg-white dark:bg-black text-black dark:text-white border-r-2 border-black dark:border-white select-none transition-all duration-200 overflow-hidden',
       isCollapsed ? 'w-16' : 'w-64',
     ]"
   >
     <!-- Sidebar Header -->
-    <div class="p-3 border-b-2 border-black dark:border-white flex items-center justify-between">
+    <div class="p-3 border-b-2 border-black dark:border-white flex items-center justify-between flex-shrink-0">
       <div v-if="!isCollapsed" class="flex items-center gap-2 px-2">
         <FolderTree class="w-4 h-4" />
         <span class="text-xs font-black uppercase tracking-wider">
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Navigation Items List -->
-    <div class="flex-1 overflow-y-auto p-2 space-y-1.5">
+    <div class="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-0">
       <!-- ALL Bookmarks -->
       <button
         @click="navStore.activeCategoryId = 'ALL'"
@@ -135,7 +135,7 @@
     </div>
 
     <!-- Sidebar Bottom: Add Category Button -->
-    <div class="p-3 border-t-2 border-black dark:border-white">
+    <div class="p-3 border-t-2 border-black dark:border-white flex-shrink-0">
       <button
         @click="emit('add-category')"
         class="w-full py-2.5 px-3 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 rounded-none transition-colors duration-200"

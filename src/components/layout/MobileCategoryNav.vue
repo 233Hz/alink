@@ -1,5 +1,5 @@
 <template>
-  <div class="md:hidden sticky top-16 z-30 bg-white dark:bg-black border-b-2 border-black dark:border-white px-4 py-2.5 overflow-x-auto no-scrollbar flex items-center gap-2">
+  <div class="md:hidden sticky top-16 z-30 bg-white dark:bg-black border-b-2 border-black dark:border-white px-4 py-2.5 overflow-x-auto no-scrollbar flex items-center gap-2 flex-shrink-0">
     <!-- ALL Pill -->
     <button
       @click="navStore.activeCategoryId = 'ALL'"
