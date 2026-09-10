@@ -99,21 +99,12 @@
       :is-open="isAuthModalOpen"
       @close="isAuthModalOpen = false"
     />
-
-    <!-- Mobile Floating Add Button (FAB) -->
-    <button
-      @click="openAddWebsiteModal(null)"
-      class="sm:hidden fixed bottom-6 right-6 z-30 w-12 h-12 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none font-bold hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors"
-      title="添加网址"
-    >
-      <Plus class="w-6 h-6" />
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Loader2, Plus } from '@lucide/vue';
+import { Loader2 } from '@lucide/vue';
 import { useNavStore } from './stores/nav';
 import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
