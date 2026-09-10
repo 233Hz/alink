@@ -150,7 +150,40 @@
               <span>🎲 随机生成</span>
             </button>
           </div>
+
+          <!-- Quick generative avatar style presets -->
+          <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
+            <span class="text-[11px] font-mono text-gray-500 mr-1">生成风格:</span>
+            <button
+              v-for="st in DICEBEAR_STYLES"
+              :key="st.id"
+              type="button"
+              @click="applyGenerativeStyle(st.id)"
+              class="px-2 py-0.5 text-[11px] font-mono border border-black dark:border-white bg-transparent hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none"
+              :title="st.description"
+            >
+              {{ st.label }}
+            </button>
+            <button
+              type="button"
+              @click="applyLocalSvg"
+              class="px-2 py-0.5 text-[11px] font-mono border border-black dark:border-white bg-transparent hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none text-gray-600 dark:text-gray-300"
+              title="使用内置离线矢量几何图标"
+            >
+              本地矢量
+            </button>
+            <button
+              v-if="form.icon_url"
+              type="button"
+              @click="clearCustomIcon"
+              class="px-1.5 py-0.5 text-[11px] font-mono text-[#ff3366] hover:underline"
+              title="清空自定义图标，恢复自动抓取"
+            >
+              [恢复自动]
+            </button>
+          </div>
         </div>
+
 
         <!-- Error Alert -->
         <div v-if="errorMsg" class="p-3 text-xs font-mono font-bold text-white bg-[#ff3366] rounded-none">
@@ -186,7 +219,16 @@ import { ref, reactive, computed, watch } from 'vue';
 import { X, Loader2 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Website, WebsiteFormData } from '../../types';
-import { normalizeUrl, suggestTitleFromUrl, crawlWebsiteTitle, getFaviconUrl, getRandomGeneratedIconDataUrl } from '../../utils';
+import {
+  normalizeUrl,
+  suggestTitleFromUrl,
+  crawlWebsiteTitle,
+  getFaviconUrl,
+  getRandomGeneratedIconDataUrl,
+  getRandomDiceBearAvatarUrl,
+  DICEBEAR_STYLES,
+  type DiceBearStyle,
+} from '../../utils';
 import GeneratedIcon from '../common/GeneratedIcon.vue';
 
 const props = defineProps<{
@@ -242,6 +284,13 @@ watch(
   }
 );
 
+watch(
+  () => form.icon_url,
+  () => {
+    previewIconFailed.value = false;
+  }
+);
+
 const previewIconSrc = computed(() => {
   if (previewIconFailed.value) return '';
   if (form.icon_url && form.icon_url.trim()) {
@@ -293,7 +342,24 @@ async function fetchAndApplyTitle(force = false) {
 }
 
 function rollRandomIcon() {
+  const seed = form.title || form.url || 'alink';
+  form.icon_url = getRandomDiceBearAvatarUrl(seed);
+  previewIconFailed.value = false;
+}
+
+function applyGenerativeStyle(style: DiceBearStyle) {
+  const seed = form.title || form.url || 'alink';
+  form.icon_url = getRandomDiceBearAvatarUrl(seed, style);
+  previewIconFailed.value = false;
+}
+
+function applyLocalSvg() {
   form.icon_url = getRandomGeneratedIconDataUrl();
+  previewIconFailed.value = false;
+}
+
+function clearCustomIcon() {
+  form.icon_url = '';
   previewIconFailed.value = false;
 }
 

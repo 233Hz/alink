@@ -299,3 +299,51 @@ export function getRandomGeneratedIconDataUrl(): string {
   const svg = wrapSvg(icon.elements);
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
+
+export type DiceBearStyle = 'shapes' | 'identicon' | 'rings' | 'icons' | 'bottts-neutral';
+
+export interface DiceBearStyleOption {
+  id: DiceBearStyle;
+  label: string;
+  description: string;
+}
+
+export const DICEBEAR_STYLES: DiceBearStyleOption[] = [
+  { id: 'shapes', label: '包豪斯几何', description: '抽象几何色块组合 (Shapes)' },
+  { id: 'identicon', label: '像素矩阵', description: '经典5x5对称哈希矩阵 (Identicon)' },
+  { id: 'rings', label: '同心圆环', description: '极简同心环结构 (Rings)' },
+  { id: 'icons', label: '极简线条', description: '通用线条符号图标 (Icons)' },
+  { id: 'bottts-neutral', label: '几何机甲', description: '极简机器人部件头像 (Bottts)' },
+];
+
+/**
+ * Builds a DiceBear generative avatar URL customized for ALink's Minimalist Flat style.
+ * Guarantees zero border radius, pure white background, and signature black & coral colors.
+ */
+export function getDiceBearAvatarUrl(seed: string, style: DiceBearStyle = 'shapes'): string {
+  const cleanSeed = encodeURIComponent((seed || 'alink').trim());
+  const base = `https://api.dicebear.com/9.x/${style}/svg?seed=${cleanSeed}&radius=0&backgroundColor=ffffff`;
+  if (style === 'shapes') {
+    return `${base}&shape1Color=000000,ff3366&shape2Color=000000,ff3366&shape3Color=000000,ff3366`;
+  }
+  if (style === 'identicon') {
+    return `${base}&rowColor=000000,ff3366`;
+  }
+  if (style === 'rings') {
+    return `${base}&ringColor=000000,ff3366`;
+  }
+  return base;
+}
+
+/**
+ * Generates a random DiceBear avatar URL with optional seed and style.
+ */
+export function getRandomDiceBearAvatarUrl(seed?: string, preferredStyle?: DiceBearStyle): string {
+  const styles: DiceBearStyle[] = ['shapes', 'identicon', 'rings', 'icons', 'bottts-neutral'];
+  const chosenStyle = preferredStyle || styles[Math.floor(Math.random() * styles.length)];
+  const randomSuffix = Math.random().toString(36).substring(2, 7);
+  const actualSeed = seed && seed.trim()
+    ? `${seed.trim()}-${randomSuffix}`
+    : `alink-${randomSuffix}`;
+  return getDiceBearAvatarUrl(actualSeed, chosenStyle);
+}
