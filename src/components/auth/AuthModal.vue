@@ -1,18 +1,25 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80"
     @click.self="close"
   >
     <div
-      class="w-full max-w-sm bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
+      class="w-full max-w-sm max-h-[88vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
     >
       <!-- Header -->
-      <div class="p-6 text-center border-b-2 border-black dark:border-white">
-        <div class="w-12 h-12 mx-auto border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center mb-3 font-black text-xl rounded-none">
+      <div class="relative p-5 sm:p-6 text-center border-b-2 border-black dark:border-white flex-shrink-0">
+        <button
+          @click="close"
+          class="absolute right-3 top-3 p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+          title="关闭"
+        >
+          <X class="w-4 h-4" />
+        </button>
+        <div class="w-10 h-10 sm:w-12 sm:h-12 mx-auto border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center mb-2 font-black text-lg sm:text-xl rounded-none">
           A
         </div>
-        <h3 class="text-xl font-bold tracking-tight uppercase">
+        <h3 class="text-lg sm:text-xl font-bold tracking-tight uppercase">
           {{ isSignUp ? '创建 ALink 账号' : '登录 ALink 账号' }}
         </h3>
         <p class="text-xs font-mono text-gray-500 mt-1">
@@ -21,7 +28,7 @@
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
+      <form @submit.prevent="handleSubmit" class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             电子邮箱
@@ -111,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles } from '@lucide/vue';
+import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles, X } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useNavStore } from '../../stores/nav';
 

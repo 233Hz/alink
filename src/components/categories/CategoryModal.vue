@@ -1,15 +1,15 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+    class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80"
     @click.self="close"
   >
     <div
-      class="w-full max-w-md bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
+      class="w-full max-w-md max-h-[88vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
     >
       <!-- Header -->
-      <div class="px-6 py-4 border-b-2 border-black dark:border-white flex items-center justify-between">
-        <h3 class="text-lg font-bold tracking-tight uppercase">
+      <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b-2 border-black dark:border-white flex items-center justify-between flex-shrink-0">
+        <h3 class="text-base sm:text-lg font-bold tracking-tight uppercase">
           {{ isEditing ? '编辑分类' : '新建分类' }}
         </h3>
         <button
@@ -21,7 +21,7 @@
       </div>
 
       <!-- Form Body -->
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
+      <form id="category-form" @submit.prevent="handleSubmit" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
         <!-- Category Name -->
         <div>
           <label class="block text-xs font-bold uppercase tracking-wider mb-2">
@@ -32,7 +32,7 @@
             type="text"
             required
             placeholder="例如：开发工具、效率设计"
-            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200 placeholder:text-gray-400"
+            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200 placeholder:text-gray-400"
           />
         </div>
 
@@ -46,7 +46,7 @@
             type="number"
             min="0"
             placeholder="0"
-            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200"
+            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200"
           />
         </div>
 
@@ -57,7 +57,7 @@
           </label>
 
           <!-- Selected Icon Preview & Custom input -->
-          <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center gap-2.5 sm:gap-3 mb-4">
             <div
               class="w-10 h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center flex-shrink-0 rounded-none"
             >
@@ -67,7 +67,7 @@
               v-model="form.icon"
               type="text"
               placeholder="图标名或 Emoji（如 🚀）"
-              class="flex-1 border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200"
+              class="flex-1 min-w-0 border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200"
             />
           </div>
 
@@ -95,26 +95,27 @@
         <div v-if="errorMsg" class="p-3 text-xs font-mono font-bold text-white bg-[#ff3366] rounded-none">
           {{ errorMsg }}
         </div>
-
-        <!-- Footer Actions -->
-        <div class="pt-4 border-t-2 border-black dark:border-white flex items-center justify-end gap-3">
-          <button
-            type="button"
-            @click="close"
-            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none"
-          >
-            取消
-          </button>
-          <button
-            type="submit"
-            :disabled="submitting"
-            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center gap-2"
-          >
-            <Loader2 v-if="submitting" class="w-3.5 h-3.5 animate-spin" />
-            <span>{{ isEditing ? '保存修改' : '确认创建' }}</span>
-          </button>
-        </div>
       </form>
+
+      <!-- Footer Actions -->
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-black dark:border-white flex items-center justify-end gap-2.5 sm:gap-3 flex-shrink-0 bg-white dark:bg-black">
+        <button
+          type="button"
+          @click="close"
+          class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none whitespace-nowrap text-center"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          form="category-form"
+          :disabled="submitting"
+          class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center justify-center gap-2 whitespace-nowrap text-center"
+        >
+          <Loader2 v-if="submitting" class="w-3.5 h-3.5 animate-spin" />
+          <span>{{ isEditing ? '保存修改' : '确认创建' }}</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
