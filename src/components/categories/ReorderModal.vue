@@ -168,10 +168,12 @@
               <div class="flex items-center gap-3 min-w-0 flex-1">
                 <div class="w-8 h-8 border border-black dark:border-white flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
                   <img
-                    v-if="site.icon_url"
-                    :src="site.icon_url"
+                    v-if="getSiteIconSrc(site)"
+                    :src="getSiteIconSrc(site)"
+                    :alt="site.title"
                     class="w-5 h-5 object-contain"
-                    @error="site.icon_url = ''"
+                    loading="lazy"
+                    @error="handleIconError(site.id)"
                   />
                   <GeneratedIcon
                     v-else
@@ -278,6 +280,7 @@ import { ref, watch, computed } from 'vue';
 import { ArrowUpDown, X, Folder, Globe, ArrowUp, ArrowDown, Loader2, CheckCircle2, AlertCircle } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
+import { getWebsiteIconUrl } from '../../utils';
 import DynamicIcon from '../common/DynamicIcon.vue';
 import GeneratedIcon from '../common/GeneratedIcon.vue';
 
@@ -295,6 +298,16 @@ const selectedWebsiteCatId = ref<string>('__UNCAT__');
 const saving = ref(false);
 const statusMsg = ref('');
 const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
+const failedIconIds = ref<Set<string>>(new Set());
+
+function getSiteIconSrc(site: Website): string {
+  if (failedIconIds.value.has(site.id)) return '';
+  return getWebsiteIconUrl(site);
+}
+
+function handleIconError(siteId: string) {
+  failedIconIds.value.add(siteId);
+}
 
 const localCategories = ref<Category[]>([]);
 const localWebsites = ref<Website[]>([]);
@@ -304,6 +317,7 @@ watch(
   (open) => {
     if (open) {
       statusMsg.value = '';
+      failedIconIds.value.clear();
       localCategories.value = JSON.parse(JSON.stringify(navStore.sortedCategories));
       localWebsites.value = JSON.parse(JSON.stringify(navStore.sortedWebsites));
 

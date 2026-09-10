@@ -43,6 +43,17 @@ export function getFaviconUrl(rawUrl: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }
 
+export function getWebsiteIconUrl(website: { icon_url?: string | null; url: string }): string {
+  if (
+    website.icon_url &&
+    website.icon_url.trim() &&
+    !website.icon_url.endsWith('/favicon.ico')
+  ) {
+    return website.icon_url.trim();
+  }
+  return getFaviconUrl(website.url);
+}
+
 export function getFallbackFavicon(rawUrl: string): string {
   const domain = extractDomain(rawUrl);
   if (!domain) return '';
