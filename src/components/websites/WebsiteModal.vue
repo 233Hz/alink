@@ -115,27 +115,37 @@
           <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             图标链接 / Emoji
           </label>
-          <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-2 sm:gap-2.5">
             <div
               class="w-10 h-10 border-2 border-black dark:border-white bg-white flex items-center justify-center flex-shrink-0 rounded-none p-1"
             >
               <img
-                v-if="previewIconSrc"
+                v-if="previewIconSrc && !previewIconFailed"
                 :src="previewIconSrc"
                 alt="Preview"
                 class="w-6 h-6 object-contain"
                 @error="previewIconFailed = true"
               />
-              <span v-else class="text-xs font-black text-black">
-                {{ form.title ? form.title.charAt(0).toUpperCase() : '图' }}
-              </span>
+              <GeneratedIcon
+                v-else
+                :seed="form.title || form.url || 'ALink'"
+                custom-class="w-6 h-6"
+              />
             </div>
             <input
               v-model="form.icon_url"
               type="text"
-              placeholder="留空则自动从网址解析 Favicon"
+              placeholder="留空则自动解析 Favicon 或生成风格图标"
               class="flex-1 min-w-0 border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200 placeholder:text-gray-400"
             />
+            <button
+              type="button"
+              @click="rollRandomIcon"
+              class="border-2 border-black dark:border-white px-2 sm:px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none whitespace-nowrap flex-shrink-0 flex items-center gap-1"
+              title="点击随机生成符合网站UI的几何风格图标"
+            >
+              <span>🎲 随机生成</span>
+            </button>
           </div>
         </div>
 
@@ -173,7 +183,8 @@ import { ref, reactive, computed, watch } from 'vue';
 import { X, Loader2 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Website, WebsiteFormData } from '../../types';
-import { normalizeUrl, suggestTitleFromUrl, getFaviconUrl } from '../../utils';
+import { normalizeUrl, suggestTitleFromUrl, getFaviconUrl, getRandomGeneratedIconDataUrl } from '../../utils';
+import GeneratedIcon from '../common/GeneratedIcon.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -252,7 +263,12 @@ function autoFillFromUrl() {
   if (!form.url.trim()) return;
   form.url = normalizeUrl(form.url);
   form.title = suggestTitleFromUrl(form.url);
-  form.icon_url = getFaviconUrl(form.url);
+  form.icon_url = '';
+  previewIconFailed.value = false;
+}
+
+function rollRandomIcon() {
+  form.icon_url = getRandomGeneratedIconDataUrl();
   previewIconFailed.value = false;
 }
 

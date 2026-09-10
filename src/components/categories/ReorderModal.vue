@@ -147,14 +147,18 @@
               class="flex items-center justify-between p-3 border-2 border-black dark:border-white bg-white dark:bg-black gap-3 rounded-none"
             >
               <div class="flex items-center gap-3 min-w-0 flex-1">
-                <div class="w-8 h-8 border border-black dark:border-white flex items-center justify-center font-bold text-xs overflow-hidden flex-shrink-0 bg-white">
+                <div class="w-8 h-8 border border-black dark:border-white flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
                   <img
                     v-if="site.icon_url"
                     :src="site.icon_url"
                     class="w-5 h-5 object-contain"
                     @error="site.icon_url = ''"
                   />
-                  <span v-else class="text-black">{{ site.title.charAt(0) }}</span>
+                  <GeneratedIcon
+                    v-else
+                    :seed="site.title + ' ' + (site.url || site.id)"
+                    custom-class="w-5 h-5"
+                  />
                 </div>
                 <div class="min-w-0 flex-1">
                   <h4 class="text-xs font-bold truncate">
@@ -258,6 +262,7 @@ import { ArrowUpDown, X, Folder, Globe, ArrowUp, ArrowDown, Loader2 } from '@luc
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
 import DynamicIcon from '../common/DynamicIcon.vue';
+import GeneratedIcon from '../common/GeneratedIcon.vue';
 
 const props = defineProps<{
   isOpen: boolean;

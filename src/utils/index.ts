@@ -90,3 +90,5 @@ export function suggestTitleFromUrl(rawUrl: string): string {
   }
   return domain;
 }
+
+export * from './iconGenerator';

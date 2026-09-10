@@ -15,19 +15,18 @@
         class="w-12 h-12 sm:w-14 sm:h-14 border-2 border-black dark:border-white rounded-none bg-white flex items-center justify-center overflow-hidden p-1"
       >
         <img
-          v-if="iconSrc"
+          v-if="iconSrc && !imgFailed"
           :src="iconSrc"
           :alt="website.title"
           class="w-7 h-7 sm:w-8 sm:h-8 object-contain"
           loading="lazy"
           @error="handleImgError"
         />
-        <span
+        <GeneratedIcon
           v-else
-          class="text-base sm:text-lg font-black uppercase text-black select-none"
-        >
-          {{ letterBadge }}
-        </span>
+          :seed="website.title + ' ' + (website.url || website.id)"
+          custom-class="w-7 h-7 sm:w-8 sm:h-8"
+        />
       </div>
     </a>
 
@@ -139,7 +138,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ExternalLink, MoreVertical, Pencil, Trash2, ArrowUp, ArrowDown } from '@lucide/vue';
 import type { Website } from '../../types';
-import { normalizeUrl, extractDomain, getFaviconUrl } from '../../utils';
+import { normalizeUrl, getFaviconUrl } from '../../utils';
+import GeneratedIcon from '../common/GeneratedIcon.vue';
 
 const props = defineProps<{
   website: Website;
@@ -159,7 +159,6 @@ const imgFailed = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
 
 const normalizedUrl = computed(() => normalizeUrl(props.website.url));
-const displayDomain = computed(() => extractDomain(props.website.url));
 
 const iconSrc = computed(() => {
   if (imgFailed.value) return '';
@@ -171,11 +170,6 @@ const iconSrc = computed(() => {
     return props.website.icon_url.trim();
   }
   return getFaviconUrl(props.website.url);
-});
-
-const letterBadge = computed(() => {
-  const t = props.website.title || displayDomain.value || 'W';
-  return t.charAt(0).toUpperCase();
 });
 
 function handleImgError() {
