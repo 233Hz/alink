@@ -30,24 +30,73 @@
         </a>
       </div>
 
-      <!-- Center: Global Search Input -->
-      <div class="flex-1 max-w-lg mx-2">
-        <div class="relative flex items-center">
-          <Search class="w-4 h-4 text-black dark:text-white absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <!-- Center: Web Search Bar with Engine Selector -->
+      <div class="flex-1 max-w-xl mx-2 sm:mx-4">
+        <form
+          @submit.prevent="handleSearch"
+          class="relative flex items-center border-2 border-black dark:border-white bg-white dark:bg-black rounded-none shadow-none"
+        >
+          <!-- Engine Selector Dropdown Trigger -->
+          <div class="relative" ref="engineMenuRef">
+            <button
+              type="button"
+              @click="isEngineMenuOpen = !isEngineMenuOpen"
+              class="h-8 sm:h-9 px-2 sm:px-2.5 flex items-center gap-1 text-xs font-bold border-r-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none whitespace-nowrap bg-transparent"
+              title="切换搜索引擎"
+            >
+              <span>{{ currentEngine.name }}</span>
+              <ChevronDown class="w-3 h-3" />
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div
+              v-if="isEngineMenuOpen"
+              class="absolute left-0 top-full mt-1.5 w-28 bg-white dark:bg-black border-2 border-black dark:border-white rounded-none shadow-none z-50 py-1"
+            >
+              <button
+                v-for="eng in SEARCH_ENGINES"
+                :key="eng.id"
+                type="button"
+                @click="selectEngine(eng.id)"
+                class="w-full text-left px-3 py-1.5 text-xs font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-between transition-colors"
+                :class="{ 'bg-black text-white dark:bg-white dark:text-black': eng.id === selectedEngineId }"
+              >
+                <span>{{ eng.name }}</span>
+                <Check v-if="eng.id === selectedEngineId" class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Search Input -->
           <input
-            v-model="navStore.searchQuery"
+            v-model="searchInput"
+            @input="handleInput"
             type="text"
-            placeholder="搜索网址、名称或描述..."
-            class="w-full pl-7 pr-8 py-1.5 text-sm border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] dark:focus:border-[#ff3366] transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-600"
+            :placeholder="currentEngine.placeholder"
+            class="flex-1 min-w-0 h-8 sm:h-9 px-2.5 text-xs sm:text-sm bg-transparent text-black dark:text-white rounded-none focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600"
           />
+
+          <!-- Clear Button -->
           <button
-            v-if="navStore.searchQuery"
-            @click="navStore.searchQuery = ''"
-            class="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-black dark:text-white hover:text-[#ff3366]"
+            v-if="searchInput"
+            type="button"
+            @click="clearSearch"
+            class="p-1 text-gray-500 hover:text-black dark:hover:text-white mr-1"
+            title="清空内容"
           >
-            <X class="w-4 h-4" />
+            <X class="w-3.5 h-3.5" />
           </button>
-        </div>
+
+          <!-- Search Submit Button -->
+          <button
+            type="submit"
+            class="h-8 sm:h-9 px-3 bg-black text-white dark:bg-white dark:text-black hover:bg-[#ff3366] dark:hover:bg-[#ff3366] dark:hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border-l-2 border-black dark:border-white rounded-none flex-shrink-0"
+            title="点击搜索或按回车"
+          >
+            <Search class="w-3.5 h-3.5" />
+            <span class="hidden md:inline">搜索</span>
+          </button>
+        </form>
       </div>
 
       <!-- Right: Action Buttons & User Profile -->
@@ -136,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   Menu,
   Search,
@@ -148,6 +197,8 @@ import {
   User,
   LogOut,
   KeyRound,
+  ChevronDown,
+  Check,
 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import { useThemeStore } from '../../stores/theme';
@@ -165,6 +216,97 @@ const navStore = useNavStore();
 const themeStore = useThemeStore();
 const authStore = useAuthStore();
 
+interface SearchEngine {
+  id: string;
+  name: string;
+  url: string;
+  placeholder: string;
+}
+
+const SEARCH_ENGINES: SearchEngine[] = [
+  {
+    id: 'bing',
+    name: '必应',
+    url: 'https://www.bing.com/search?q=',
+    placeholder: '在必应中搜索，回车直达...',
+  },
+  {
+    id: 'baidu',
+    name: '百度',
+    url: 'https://www.baidu.com/s?wd=',
+    placeholder: '在百度中搜索，回车直达...',
+  },
+  {
+    id: 'google',
+    name: '谷歌',
+    url: 'https://www.google.com/search?q=',
+    placeholder: '在 Google 中搜索，回车直达...',
+  },
+  {
+    id: 'github',
+    name: 'GitHub',
+    url: 'https://github.com/search?q=',
+    placeholder: '在 GitHub 中搜索仓库...',
+  },
+  {
+    id: 'local',
+    name: '站内',
+    url: '',
+    placeholder: '筛选站内网址、名称或描述...',
+  },
+];
+
+const selectedEngineId = ref<string>(localStorage.getItem('alink_search_engine') || 'bing');
+const isEngineMenuOpen = ref(false);
+const engineMenuRef = ref<HTMLElement | null>(null);
+const searchInput = ref('');
+
+const currentEngine = computed(() => {
+  return SEARCH_ENGINES.find((e) => e.id === selectedEngineId.value) || SEARCH_ENGINES[0];
+});
+
+function selectEngine(id: string) {
+  selectedEngineId.value = id;
+  localStorage.setItem('alink_search_engine', id);
+  isEngineMenuOpen.value = false;
+  if (id === 'local') {
+    navStore.searchQuery = searchInput.value;
+  } else {
+    navStore.searchQuery = '';
+  }
+}
+
+function handleSearch() {
+  const q = searchInput.value.trim();
+  if (currentEngine.value.id === 'local') {
+    navStore.searchQuery = q;
+    return;
+  }
+
+  if (!q) {
+    if (currentEngine.value.url) {
+      window.open(currentEngine.value.url.split('?')[0], '_blank');
+    }
+    return;
+  }
+
+  const targetUrl = `${currentEngine.value.url}${encodeURIComponent(q)}`;
+  window.open(targetUrl, '_blank');
+}
+
+function clearSearch() {
+  searchInput.value = '';
+  if (currentEngine.value.id === 'local') {
+    navStore.searchQuery = '';
+  }
+}
+
+function handleInput() {
+  if (currentEngine.value.id === 'local') {
+    navStore.searchQuery = searchInput.value;
+  }
+}
+
 const isUserMenuOpen = ref(false);
 const userMenuRef = ref<HTMLElement | null>(null);
 
@@ -177,6 +319,9 @@ function handleSignOut() {
 function handleClickOutside(e: MouseEvent) {
   if (userMenuRef.value && !userMenuRef.value.contains(e.target as Node)) {
     isUserMenuOpen.value = false;
+  }
+  if (engineMenuRef.value && !engineMenuRef.value.contains(e.target as Node)) {
+    isEngineMenuOpen.value = false;
   }
 }
 
