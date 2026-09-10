@@ -176,7 +176,15 @@ async function handleSubmit() {
     }
   } catch (err: any) {
     console.error('Auth error:', err);
-    errorMsg.value = err.message || '认证失败，请检查邮箱与密码';
+    let msg = err.message || '认证失败，请检查邮箱与密码';
+    if (msg.includes('User already registered')) {
+      msg = '该邮箱已注册，请直接点击下方“去登录”';
+    } else if (msg.includes('Invalid login credentials')) {
+      msg = '邮箱或密码错误，请检查后重新输入';
+    } else if (msg.includes('Email not confirmed')) {
+      msg = '邮箱尚未激活，请刷新后重试';
+    }
+    errorMsg.value = msg;
   } finally {
     submitting.value = false;
   }

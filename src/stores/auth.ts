@@ -9,8 +9,8 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true);
   const isGuest = ref(false);
 
-  const isAuthenticated = computed(() => !!user.value);
-  const userEmail = computed(() => user.value?.email || (isGuest.value ? '访客体验模式' : '未登录'));
+  const isAuthenticated = computed(() => !!user.value && !!session.value);
+  const userEmail = computed(() => (isAuthenticated.value ? user.value?.email : (isGuest.value ? '访客体验模式' : '未登录')));
 
   async function initAuth() {
     try {
@@ -37,6 +37,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function ensureSession(): Promise<boolean> {
+    if (session.value) return true;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data?.session) {
+        session.value = null;
+        user.value = null;
+        return false;
+      }
+      session.value = data.session;
+      user.value = data.session.user;
+      return true;
+    } catch {
+      session.value = null;
+      user.value = null;
+      return false;
+    }
+  }
+
   async function signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -55,6 +74,13 @@ export const useAuthStore = defineStore('auth', () => {
       password,
     });
     if (error) throw error;
+
+    // If Supabase didn't return an active session immediately, auto sign-in
+    // to establish a valid JWT session
+    if (!data.session) {
+      return await signIn(email, password);
+    }
+
     user.value = data.user;
     session.value = data.session;
     isGuest.value = false;
@@ -80,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userEmail,
     initAuth,
+    ensureSession,
     signIn,
     signUp,
     signOut,

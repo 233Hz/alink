@@ -100,13 +100,30 @@ export const useNavStore = defineStore('nav', () => {
     return groups;
   });
 
+  function handleDbError(err: any): never {
+    console.error('Database operation failed:', err);
+    if (
+      err?.message?.includes('violates row-level security') ||
+      err?.code === '42501' ||
+      err?.status === 401 ||
+      err?.statusCode === '401'
+    ) {
+      throw new Error('登录凭证已失效或未生效，请重新登录后再试');
+    }
+    throw err;
+  }
+
   // Fetch all data for current user or load guest demo data
   async function fetchData() {
     loading.value = true;
     error.value = null;
 
     try {
-      if (authStore.user) {
+      if (authStore.user && !authStore.session) {
+        await authStore.ensureSession();
+      }
+
+      if (authStore.isAuthenticated && authStore.user) {
         // 1. Fetch categories
         const { data: catData, error: catError } = await supabase
           .from('categories')
@@ -131,7 +148,15 @@ export const useNavStore = defineStore('nav', () => {
       }
     } catch (err: any) {
       console.error('Error fetching navigation data:', err);
-      error.value = err.message || '获取数据失败';
+      if (
+        err?.message?.includes('violates row-level security') ||
+        err?.code === '42501' ||
+        err?.status === 401
+      ) {
+        error.value = '登录凭证已失效，请重新登录';
+      } else {
+        error.value = err.message || '获取数据失败';
+      }
     } finally {
       loading.value = false;
     }
@@ -173,7 +198,7 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   function saveGuestData() {
-    if (!authStore.user) {
+    if (!authStore.isAuthenticated) {
       localStorage.setItem('alink_guest_categories', JSON.stringify(categories.value));
       localStorage.setItem('alink_guest_websites', JSON.stringify(websites.value));
     }
@@ -181,7 +206,11 @@ export const useNavStore = defineStore('nav', () => {
 
   // --- Category Actions ---
   async function createCategory(data: CategoryFormData) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       const maxOrder = categories.value.reduce((max, c) => Math.max(max, c.order_index), -1);
       const order_index = data.order_index ?? (maxOrder + 1);
 
@@ -196,7 +225,7 @@ export const useNavStore = defineStore('nav', () => {
         .select()
         .single();
 
-      if (err) throw err;
+      if (err) handleDbError(err);
       if (newCat) {
         categories.value.push(newCat);
       }
@@ -219,7 +248,11 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function updateCategory(id: string, data: Partial<CategoryFormData>) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       const updatePayload: any = {};
       if (data.name !== undefined) updatePayload.name = data.name.trim();
       if (data.icon !== undefined) updatePayload.icon = data.icon;
@@ -232,7 +265,7 @@ export const useNavStore = defineStore('nav', () => {
         .select()
         .single();
 
-      if (err) throw err;
+      if (err) handleDbError(err);
       const idx = categories.value.findIndex(c => c.id === id);
       if (idx !== -1 && updated) {
         categories.value[idx] = updated;
@@ -252,10 +285,15 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function deleteCategory(id: string, deleteWebsites: boolean) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       if (!deleteWebsites) {
         // Move websites to uncategorized (category_id = null)
-        await supabase.from('websites').update({ category_id: null }).eq('category_id', id);
+        const { error: webErr } = await supabase.from('websites').update({ category_id: null }).eq('category_id', id);
+        if (webErr) handleDbError(webErr);
         websites.value.forEach(w => {
           if (w.category_id === id) {
             w.category_id = null;
@@ -263,13 +301,14 @@ export const useNavStore = defineStore('nav', () => {
         });
       } else {
         // Cascade delete websites
-        await supabase.from('websites').delete().eq('category_id', id);
+        const { error: webErr } = await supabase.from('websites').delete().eq('category_id', id);
+        if (webErr) handleDbError(webErr);
         websites.value = websites.value.filter(w => w.category_id !== id);
       }
 
       // Delete the category itself
       const { error: err } = await supabase.from('categories').delete().eq('id', id);
-      if (err) throw err;
+      if (err) handleDbError(err);
 
       categories.value = categories.value.filter(c => c.id !== id);
       if (activeCategoryId.value === id) {
@@ -334,9 +373,14 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function saveBatchCategoriesOrder(catsToUpdate: Category[]) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       for (const c of catsToUpdate) {
-        await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
+        const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
+        if (err) console.error('Error updating category order:', err);
       }
     } else {
       saveGuestData();
@@ -362,7 +406,11 @@ export const useNavStore = defineStore('nav', () => {
     const maxOrder = sameCategorySites.reduce((max, w) => Math.max(max, w.order_index), -1);
     const order_index = data.order_index ?? (maxOrder + 1);
 
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       const { data: newWeb, error: err } = await supabase
         .from('websites')
         .insert({
@@ -377,7 +425,7 @@ export const useNavStore = defineStore('nav', () => {
         .select()
         .single();
 
-      if (err) throw err;
+      if (err) handleDbError(err);
       if (newWeb) {
         websites.value.push(newWeb);
       }
@@ -402,7 +450,11 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function updateWebsite(id: string, data: Partial<WebsiteFormData>) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       const updatePayload: any = {};
       if (data.title !== undefined) updatePayload.title = data.title.trim();
       if (data.url !== undefined) updatePayload.url = data.url.trim();
@@ -418,7 +470,7 @@ export const useNavStore = defineStore('nav', () => {
         .select()
         .single();
 
-      if (err) throw err;
+      if (err) handleDbError(err);
       const idx = websites.value.findIndex(w => w.id === id);
       if (idx !== -1 && updated) {
         websites.value[idx] = updated;
@@ -439,9 +491,13 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function deleteWebsite(id: string) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       const { error: err } = await supabase.from('websites').delete().eq('id', id);
-      if (err) throw err;
+      if (err) handleDbError(err);
       websites.value = websites.value.filter(w => w.id !== id);
     } else {
       websites.value = websites.value.filter(w => w.id !== id);
@@ -503,9 +559,14 @@ export const useNavStore = defineStore('nav', () => {
   }
 
   async function saveBatchWebsitesOrder(sitesToUpdate: Website[]) {
-    if (authStore.user) {
+    if (authStore.user && !authStore.session) {
+      await authStore.ensureSession();
+    }
+
+    if (authStore.isAuthenticated && authStore.user) {
       for (const w of sitesToUpdate) {
-        await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
+        const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
+        if (err) console.error('Error updating website order:', err);
       }
     } else {
       saveGuestData();
