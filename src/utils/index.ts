@@ -91,4 +91,71 @@ export function suggestTitleFromUrl(rawUrl: string): string {
   return domain;
 }
 
+function cleanHtmlTitle(title: string): string {
+  let t = title.trim();
+  if (typeof document !== 'undefined') {
+    try {
+      const txt = document.createElement('textarea');
+      txt.innerHTML = t;
+      t = txt.value;
+    } catch {}
+  } else {
+    t = t
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>');
+  }
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Crawls and extracts real website <title> using resilient services with fast local fallback.
+ */
+export async function crawlWebsiteTitle(rawUrl: string): Promise<string> {
+  const url = normalizeUrl(rawUrl);
+  if (!url) return '';
+
+  // 1. Try Microlink (Fast, structured OpenGraph / HTML title)
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && json.data.title && typeof json.data.title === 'string') {
+        const cleaned = cleanHtmlTitle(json.data.title);
+        if (cleaned) return cleaned;
+      }
+    }
+  } catch {}
+
+  // 2. Try Allorigins fallback (Fetches raw HTML and extracts <title>)
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.contents && typeof data.contents === 'string') {
+        const match = data.contents.match(/<title[^>]*>([^<]+)<\/title>/i);
+        if (match && match[1]) {
+          const cleaned = cleanHtmlTitle(match[1]);
+          if (cleaned) return cleaned;
+        }
+      }
+    }
+  } catch {}
+
+  // 3. Fallback to suggestTitleFromUrl
+  return suggestTitleFromUrl(url);
+}
+
 export * from './iconGenerator';

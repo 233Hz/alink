@@ -51,6 +51,26 @@
         </button>
       </div>
 
+      <!-- Pinned Notification Banner (Always visible, never hidden by scroll) -->
+      <div
+        v-if="statusMsg"
+        class="px-6 py-2.5 bg-black text-white dark:bg-white dark:text-black font-bold font-mono text-xs border-b-2 border-black dark:border-white flex items-center justify-between z-20 flex-shrink-0"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <CheckCircle2 v-if="!isErrorStatus" class="w-4 h-4 text-[#ff3366] flex-shrink-0" />
+          <AlertCircle v-else class="w-4 h-4 text-[#ff3366] flex-shrink-0" />
+          <span class="truncate">{{ statusMsg }}</span>
+        </div>
+        <button
+          type="button"
+          @click="statusMsg = ''"
+          class="p-0.5 hover:text-[#ff3366] transition-colors ml-2"
+          title="关闭提示"
+        >
+          <X class="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       <!-- Tab Content Area -->
       <div class="flex-1 overflow-y-auto p-6 space-y-4">
         <!-- TAB 1: Categories Sorting -->
@@ -128,8 +148,6 @@
               v-model="selectedWebsiteCatId"
               class="border-2 border-black dark:border-white px-3 py-1.5 text-xs bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
             >
-              <option value="__ALL__">全部网址</option>
-              <option value="__UNCAT__">未分类</option>
               <option
                 v-for="c in navStore.sortedCategories"
                 :key="c.id"
@@ -137,6 +155,7 @@
               >
                 {{ c.name }}
               </option>
+              <option value="__UNCAT__">未分类</option>
             </select>
           </div>
 
@@ -206,11 +225,6 @@
             当前分类下暂无网址
           </div>
         </div>
-
-        <!-- Success or error message -->
-        <div v-if="statusMsg" class="p-3 text-xs font-mono font-bold text-white bg-black dark:bg-white dark:text-black border-2 border-black dark:border-white rounded-none">
-          {{ statusMsg }}
-        </div>
       </div>
 
       <!-- Footer Actions -->
@@ -233,7 +247,10 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+        <div class="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
+          <span v-if="statusMsg" class="text-xs font-mono font-bold text-[#ff3366] hidden sm:inline truncate max-w-[200px]">
+            {{ statusMsg }}
+          </span>
           <button
             type="button"
             @click="close"
@@ -258,7 +275,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { ArrowUpDown, X, Folder, Globe, ArrowUp, ArrowDown, Loader2 } from '@lucide/vue';
+import { ArrowUpDown, X, Folder, Globe, ArrowUp, ArrowDown, Loader2, CheckCircle2, AlertCircle } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
 import DynamicIcon from '../common/DynamicIcon.vue';
@@ -274,9 +291,10 @@ const emit = defineEmits<{
 
 const navStore = useNavStore();
 const activeTab = ref<'categories' | 'websites'>('categories');
-const selectedWebsiteCatId = ref<string>('__ALL__');
+const selectedWebsiteCatId = ref<string>('__UNCAT__');
 const saving = ref(false);
 const statusMsg = ref('');
+const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
 
 const localCategories = ref<Category[]>([]);
 const localWebsites = ref<Website[]>([]);
@@ -288,18 +306,31 @@ watch(
       statusMsg.value = '';
       localCategories.value = JSON.parse(JSON.stringify(navStore.sortedCategories));
       localWebsites.value = JSON.parse(JSON.stringify(navStore.sortedWebsites));
+
+      // Default to active category if valid, or first category, or uncat
+      if (
+        navStore.activeCategoryId &&
+        navStore.activeCategoryId !== 'ALL' &&
+        navStore.activeCategoryId !== 'UNCATEGORIZED' &&
+        navStore.sortedCategories.some((c) => c.id === navStore.activeCategoryId)
+      ) {
+        selectedWebsiteCatId.value = navStore.activeCategoryId;
+      } else if (navStore.activeCategoryId === 'UNCATEGORIZED') {
+        selectedWebsiteCatId.value = '__UNCAT__';
+      } else if (navStore.sortedCategories.length > 0) {
+        selectedWebsiteCatId.value = navStore.sortedCategories[0].id;
+      } else {
+        selectedWebsiteCatId.value = '__UNCAT__';
+      }
     }
   }
 );
 
 const filteredLocalWebsites = computed(() => {
-  if (selectedWebsiteCatId.value === '__ALL__') {
-    return localWebsites.value;
-  }
   if (selectedWebsiteCatId.value === '__UNCAT__') {
-    return localWebsites.value.filter(w => !w.category_id);
+    return localWebsites.value.filter((w) => !w.category_id);
   }
-  return localWebsites.value.filter(w => w.category_id === selectedWebsiteCatId.value);
+  return localWebsites.value.filter((w) => w.category_id === selectedWebsiteCatId.value);
 });
 
 function moveCategoryItem(index: number, direction: -1 | 1) {
@@ -415,7 +446,7 @@ async function saveChanges() {
 
     setTimeout(() => {
       statusMsg.value = '';
-    }, 2000);
+    }, 3000);
   } catch (err: any) {
     statusMsg.value = '保存出错: ' + err.message;
   } finally {

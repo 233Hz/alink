@@ -38,10 +38,13 @@
             />
             <button
               type="button"
-              @click="autoFillFromUrl"
-              class="border-2 border-black dark:border-white px-2.5 py-1.5 sm:px-3 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none whitespace-nowrap flex-shrink-0"
+              @click="() => autoFillFromUrl(true)"
+              :disabled="fetchingTitle"
+              class="border-2 border-black dark:border-white px-2.5 py-1.5 sm:px-3 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 disabled:opacity-60"
+              title="自动抓取网页真实标题"
             >
-              自动识别
+              <Loader2 v-if="fetchingTitle" class="w-3.5 h-3.5 animate-spin text-[#ff3366]" />
+              <span>{{ fetchingTitle ? '抓取中...' : '自动识别' }}</span>
             </button>
           </div>
         </div>
@@ -183,7 +186,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { X, Loader2 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Website, WebsiteFormData } from '../../types';
-import { normalizeUrl, suggestTitleFromUrl, getFaviconUrl, getRandomGeneratedIconDataUrl } from '../../utils';
+import { normalizeUrl, suggestTitleFromUrl, crawlWebsiteTitle, getFaviconUrl, getRandomGeneratedIconDataUrl } from '../../utils';
 import GeneratedIcon from '../common/GeneratedIcon.vue';
 
 const props = defineProps<{
@@ -199,6 +202,7 @@ const emit = defineEmits<{
 
 const navStore = useNavStore();
 const submitting = ref(false);
+const fetchingTitle = ref(false);
 const errorMsg = ref('');
 const previewIconFailed = ref(false);
 
@@ -249,22 +253,43 @@ const previewIconSrc = computed(() => {
   return '';
 });
 
-function handleUrlBlur() {
+async function handleUrlBlur() {
   if (form.url.trim()) {
     form.url = normalizeUrl(form.url);
     if (!form.title.trim()) {
       form.title = suggestTitleFromUrl(form.url);
+      await fetchAndApplyTitle(false);
     }
     previewIconFailed.value = false;
   }
 }
 
-function autoFillFromUrl() {
+async function autoFillFromUrl(force = false) {
   if (!form.url.trim()) return;
   form.url = normalizeUrl(form.url);
-  form.title = suggestTitleFromUrl(form.url);
+  if (!form.title.trim()) {
+    form.title = suggestTitleFromUrl(form.url);
+  }
   form.icon_url = '';
   previewIconFailed.value = false;
+  await fetchAndApplyTitle(force);
+}
+
+async function fetchAndApplyTitle(force = false) {
+  if (!form.url.trim()) return;
+  try {
+    fetchingTitle.value = true;
+    const crawled = await crawlWebsiteTitle(form.url);
+    if (crawled && (force || !form.title.trim() || form.title === suggestTitleFromUrl(form.url))) {
+      form.title = crawled;
+    }
+  } catch {
+    if (!form.title.trim()) {
+      form.title = suggestTitleFromUrl(form.url);
+    }
+  } finally {
+    fetchingTitle.value = false;
+  }
 }
 
 function rollRandomIcon() {
