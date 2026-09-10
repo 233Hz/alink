@@ -134,46 +134,26 @@
             <input
               v-model="form.icon_url"
               type="text"
-              placeholder="留空则自动解析 Favicon 或生成风格图标"
+              placeholder="留空则自动解析 Favicon 或生成象形矩阵图标"
               class="flex-1 min-w-0 border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200 placeholder:text-gray-400"
             />
             <button
               type="button"
               @click="rollRandomIcon"
               class="border-2 border-black dark:border-white px-2 sm:px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none whitespace-nowrap flex-shrink-0 flex items-center gap-1"
-              title="点击随机生成符合网站UI的几何风格图标"
+              title="点击随机生成象形矩阵像素图标"
             >
               <span>🎲 随机生成</span>
             </button>
           </div>
 
-          <!-- Quick generative avatar style presets -->
-          <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
-            <span class="text-[11px] font-mono text-gray-500 mr-1">生成风格:</span>
+          <!-- Quick actions -->
+          <div v-if="form.icon_url" class="flex items-center gap-1.5 mt-2">
             <button
-              v-for="st in DICEBEAR_STYLES"
-              :key="st.id"
-              type="button"
-              @click="applyGenerativeStyle(st.id)"
-              class="px-2 py-0.5 text-[11px] font-mono border border-black dark:border-white bg-transparent hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none"
-              :title="st.description"
-            >
-              {{ st.label }}
-            </button>
-            <button
-              type="button"
-              @click="applyLocalSvg"
-              class="px-2 py-0.5 text-[11px] font-mono border border-black dark:border-white bg-transparent hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none text-gray-600 dark:text-gray-300"
-              title="使用内置离线矢量几何图标"
-            >
-              本地矢量
-            </button>
-            <button
-              v-if="form.icon_url"
               type="button"
               @click="clearCustomIcon"
-              class="px-1.5 py-0.5 text-[11px] font-mono text-[#ff3366] hover:underline"
-              title="清空自定义图标，恢复自动抓取"
+              class="text-[11px] font-mono text-[#ff3366] hover:underline"
+              title="清空自定义图标，恢复自动抓取或自动生成"
             >
               [恢复自动]
             </button>
@@ -220,9 +200,6 @@ import {
   suggestTitleFromUrl,
   crawlWebsiteTitle,
   getRandomGeneratedIconDataUrl,
-  getRandomDiceBearAvatarUrl,
-  DICEBEAR_STYLES,
-  type DiceBearStyle,
 } from '../../utils';
 import WebsiteIcon from '../common/WebsiteIcon.vue';
 
@@ -315,16 +292,6 @@ async function fetchAndApplyTitle(force = false) {
 }
 
 function rollRandomIcon() {
-  const seed = form.title || form.url || 'alink';
-  form.icon_url = getRandomDiceBearAvatarUrl(seed);
-}
-
-function applyGenerativeStyle(style: DiceBearStyle) {
-  const seed = form.title || form.url || 'alink';
-  form.icon_url = getRandomDiceBearAvatarUrl(seed, style);
-}
-
-function applyLocalSvg() {
   form.icon_url = getRandomGeneratedIconDataUrl();
 }
 
