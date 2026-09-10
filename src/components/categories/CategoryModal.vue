@@ -1,44 +1,44 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
     @click.self="close"
   >
     <div
-      class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
+      class="w-full max-w-md bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
     >
       <!-- Header -->
-      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">
+      <div class="px-6 py-4 border-b-2 border-black dark:border-white flex items-center justify-between">
+        <h3 class="text-lg font-bold tracking-tight uppercase">
           {{ isEditing ? '编辑分类' : '新建分类' }}
         </h3>
         <button
           @click="close"
-          class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
         >
-          <X class="w-5 h-5" />
+          <X class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Form Body -->
-      <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
+      <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
         <!-- Category Name -->
         <div>
-          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-            分类名称 <span class="text-rose-500">*</span>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
+            分类名称 <span class="text-[#ff3366]">*</span>
           </label>
           <input
             v-model="form.name"
             type="text"
             required
-            placeholder="例如：开发工具、生活日常"
-            class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-slate-400"
+            placeholder="例如：开发工具、效率设计"
+            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200 placeholder:text-gray-400"
           />
         </div>
 
         <!-- Order Index -->
         <div>
-          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             排序序号
           </label>
           <input
@@ -46,36 +46,33 @@
             type="number"
             min="0"
             placeholder="0"
-            class="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200"
           />
-          <p class="text-[11px] text-slate-400 mt-1">
-            数字越小排列越靠前，也可在分类菜单中通过“上移/下移”随时调整
-          </p>
         </div>
 
         <!-- Icon Picker -->
         <div>
-          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             分类图标
           </label>
 
           <!-- Selected Icon Preview & Custom input -->
-          <div class="flex items-center gap-3 mb-3">
+          <div class="flex items-center gap-3 mb-4">
             <div
-              class="w-10 h-10 rounded-xl bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center flex-shrink-0 rounded-none"
             >
               <DynamicIcon :icon="form.icon" :size="20" custom-class="w-5 h-5" />
             </div>
             <input
               v-model="form.icon"
               type="text"
-              placeholder="可输入自定义图标名或 Emoji（如 🚀）"
-              class="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+              placeholder="图标名或 Emoji（如 🚀）"
+              class="flex-1 border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-2 text-sm transition-colors duration-200"
             />
           </div>
 
           <!-- Preset Icons Grid -->
-          <div class="grid grid-cols-8 gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+          <div class="grid grid-cols-8 gap-1.5 p-2 border-2 border-black dark:border-white bg-white dark:bg-black">
             <button
               v-for="preset in COMMON_ICONS"
               :key="preset.name"
@@ -83,10 +80,10 @@
               @click="form.icon = preset.name"
               :title="preset.label"
               :class="[
-                'p-2 rounded-lg flex items-center justify-center transition-all',
+                'p-2 border border-black dark:border-white flex items-center justify-center transition-colors rounded-none',
                 form.icon === preset.name
-                  ? 'bg-brand-500 text-white shadow-sm scale-105'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 hover:text-slate-700 dark:hover:text-slate-200',
+                  ? 'bg-black text-white dark:bg-white dark:text-black'
+                  : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
               ]"
             >
               <DynamicIcon :icon="preset.name" :size="16" custom-class="w-4 h-4" />
@@ -95,23 +92,23 @@
         </div>
 
         <!-- Error Alert -->
-        <div v-if="errorMsg" class="p-3 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
+        <div v-if="errorMsg" class="p-3 text-xs font-mono font-bold text-white bg-[#ff3366] rounded-none">
           {{ errorMsg }}
         </div>
 
         <!-- Footer Actions -->
-        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+        <div class="pt-4 border-t-2 border-black dark:border-white flex items-center justify-end gap-3">
           <button
             type="button"
             @click="close"
-            class="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none"
           >
             取消
           </button>
           <button
             type="submit"
             :disabled="submitting"
-            class="px-5 py-2 text-xs font-medium text-white bg-brand-600 hover:bg-brand-500 disabled:opacity-50 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center gap-2"
           >
             <Loader2 v-if="submitting" class="w-3.5 h-3.5 animate-spin" />
             <span>{{ isEditing ? '保存修改' : '确认创建' }}</span>

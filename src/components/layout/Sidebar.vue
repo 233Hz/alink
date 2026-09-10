@@ -1,22 +1,22 @@
 <template>
   <aside
     :class="[
-      'h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800/80 select-none transition-all duration-200',
+      'h-full flex flex-col bg-white dark:bg-black text-black dark:text-white border-r-2 border-black dark:border-white select-none transition-all duration-200',
       isCollapsed ? 'w-16' : 'w-64',
     ]"
   >
-    <!-- Sidebar Header / Collapse Toggle -->
-    <div class="p-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+    <!-- Sidebar Header -->
+    <div class="p-3 border-b-2 border-black dark:border-white flex items-center justify-between">
       <div v-if="!isCollapsed" class="flex items-center gap-2 px-2">
-        <FolderTree class="w-4 h-4 text-brand-600 dark:text-brand-400" />
-        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+        <FolderTree class="w-4 h-4" />
+        <span class="text-xs font-black uppercase tracking-wider">
           分类导航
         </span>
       </div>
       <button
         @click="isCollapsed = !isCollapsed"
-        class="p-1.5 mx-auto rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        :title="isCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        class="p-1 mx-auto border border-black dark:border-white rounded-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+        :title="isCollapsed ? '展开' : '收起'"
       >
         <ChevronLeft v-if="!isCollapsed" class="w-4 h-4" />
         <ChevronRight v-else class="w-4 h-4" />
@@ -24,15 +24,15 @@
     </div>
 
     <!-- Navigation Items List -->
-    <div class="flex-1 overflow-y-auto p-2 space-y-1">
+    <div class="flex-1 overflow-y-auto p-2 space-y-1.5">
       <!-- ALL Bookmarks -->
       <button
         @click="navStore.activeCategoryId = 'ALL'"
         :class="[
-          'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left group',
+          'w-full flex items-center gap-3 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-none transition-colors border-2 text-left',
           navStore.activeCategoryId === 'ALL'
-            ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400 font-semibold'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+            ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+            : 'border-transparent hover:border-black dark:hover:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
         ]"
         title="全部网址"
       >
@@ -40,7 +40,7 @@
         <span v-if="!isCollapsed" class="flex-1 truncate">全部网址</span>
         <span
           v-if="!isCollapsed"
-          class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          class="text-xs font-mono font-normal"
         >
           {{ navStore.totalWebsitesCount }}
         </span>
@@ -51,34 +51,34 @@
         v-if="navStore.uncategorizedCount > 0 || !isCollapsed"
         @click="navStore.activeCategoryId = 'UNCATEGORIZED'"
         :class="[
-          'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left group',
+          'w-full flex items-center gap-3 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-none transition-colors border-2 text-left',
           navStore.activeCategoryId === 'UNCATEGORIZED'
-            ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400 font-semibold'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+            ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+            : 'border-transparent hover:border-black dark:hover:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
         ]"
         title="未分类"
       >
-        <Bookmark class="w-4 h-4 text-amber-500 flex-shrink-0" />
+        <Bookmark class="w-4 h-4 flex-shrink-0" />
         <span v-if="!isCollapsed" class="flex-1 truncate">未分类</span>
         <span
           v-if="!isCollapsed"
-          class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400"
+          class="text-xs font-mono font-normal"
         >
           {{ navStore.uncategorizedCount }}
         </span>
       </button>
 
       <!-- Category Divider -->
-      <div v-if="!isCollapsed" class="pt-3 pb-1 px-3 flex items-center justify-between">
-        <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-          自定义分类 ({{ navStore.sortedCategories.length }})
+      <div v-if="!isCollapsed" class="pt-4 pb-2 px-3 flex items-center justify-between border-t-2 border-black dark:border-white mt-3">
+        <span class="text-[11px] font-black uppercase tracking-wider text-gray-500">
+          分类 ({{ navStore.sortedCategories.length }})
         </span>
         <button
           @click="emit('add-category')"
-          class="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 p-0.5"
+          class="p-0.5 hover:text-[#ff3366]"
           title="新建分类"
         >
-          <Plus class="w-3.5 h-3.5" />
+          <Plus class="w-4 h-4" />
         </button>
       </div>
 
@@ -91,62 +91,59 @@
         <div
           @click="navStore.activeCategoryId = cat.id"
           :class="[
-            'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer group',
+            'w-full flex items-center gap-3 px-3 py-2 text-xs font-bold rounded-none transition-colors cursor-pointer border-2',
             navStore.activeCategoryId === cat.id
-              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400 font-semibold'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+              ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+              : 'border-transparent hover:border-black dark:hover:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
           ]"
           :title="cat.name"
         >
-          <DynamicIcon :icon="cat.icon" :size="16" custom-class="w-4 h-4 flex-shrink-0 text-brand-500" />
+          <DynamicIcon :icon="cat.icon" :size="16" custom-class="w-4 h-4 flex-shrink-0" />
           <span v-if="!isCollapsed" class="flex-1 truncate">{{ cat.name }}</span>
 
-          <!-- Website Count Badge (Hidden when hovered if expanded) -->
+          <!-- Website Count Badge -->
           <span
             v-if="!isCollapsed"
-            :class="[
-              'text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400',
-              'group-hover/item:hidden',
-            ]"
+            class="text-xs font-mono font-normal group-hover/item:hidden"
           >
             {{ cat.website_count }}
           </span>
 
-          <!-- Hover Action Buttons (Visible on hover if expanded) -->
+          <!-- Action Buttons on hover -->
           <div
             v-if="!isCollapsed"
-            class="hidden group-hover/item:flex items-center gap-0.5"
+            class="hidden group-hover/item:flex items-center gap-1"
             @click.stop
           >
             <button
               @click.stop="navStore.moveCategoryUp(cat.id)"
               :disabled="idx === 0"
-              class="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20"
-              title="向上移动"
+              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
+              title="上移"
             >
-              <ArrowUp class="w-3 h-3" />
+              <ArrowUp class="w-3.5 h-3.5" />
             </button>
             <button
               @click.stop="navStore.moveCategoryDown(cat.id)"
               :disabled="idx === navStore.categoriesWithCounts.length - 1"
-              class="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20"
-              title="向下移动"
+              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
+              title="下移"
             >
-              <ArrowDown class="w-3 h-3" />
+              <ArrowDown class="w-3.5 h-3.5" />
             </button>
             <button
               @click.stop="emit('edit-category', cat)"
-              class="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              class="p-0.5 hover:text-[#ff3366]"
               title="编辑分类"
             >
-              <Pencil class="w-3 h-3" />
+              <Pencil class="w-3.5 h-3.5" />
             </button>
             <button
               @click.stop="emit('delete-category', cat)"
-              class="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+              class="p-0.5 text-[#ff3366]"
               title="删除分类"
             >
-              <Trash2 class="w-3 h-3" />
+              <Trash2 class="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -154,13 +151,13 @@
     </div>
 
     <!-- Sidebar Bottom: Add Category Button -->
-    <div class="p-3 border-t border-slate-100 dark:border-slate-800/80">
+    <div class="p-3 border-t-2 border-black dark:border-white">
       <button
         @click="emit('add-category')"
-        class="w-full py-2 px-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:border-brand-300 dark:hover:border-brand-700 flex items-center justify-center gap-1.5 transition-colors"
+        class="w-full py-2.5 px-3 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 rounded-none transition-colors duration-200"
         :title="isCollapsed ? '新建分类' : ''"
       >
-        <Plus class="w-3.5 h-3.5" />
+        <Plus class="w-4 h-4" />
         <span v-if="!isCollapsed">新建分类</span>
       </button>
     </div>

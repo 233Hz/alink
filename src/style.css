@@ -9,11 +9,16 @@
   }
   
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased min-h-screen transition-colors duration-200;
+    @apply bg-white text-black dark:bg-black dark:text-white font-sans antialiased min-h-screen;
+  }
+
+  /* Strict zero-shadow enforcement per Minimalist Flat spec */
+  *, ::before, ::after {
+    box-shadow: none !important;
   }
 }
 
-/* Custom scrollbars */
+/* Minimalist scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -24,10 +29,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
+  background: #000;
 }
 
-/* Smooth hide scrollbar utility */
+.dark ::-webkit-scrollbar-thumb {
+  background: #fff;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

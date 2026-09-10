@@ -1,80 +1,80 @@
 <template>
   <div
     v-if="isOpen && category"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
     @click.self="close"
   >
     <div
-      class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
+      class="w-full max-w-md bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
     >
-      <!-- Header -->
       <div class="p-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center flex-shrink-0">
+        <!-- Warning Header -->
+        <div class="flex items-center gap-3 border-b-2 border-black dark:border-white pb-4 mb-6">
+          <div class="w-10 h-10 border-2 border-[#ff3366] text-[#ff3366] flex items-center justify-center rounded-none flex-shrink-0">
             <AlertTriangle class="w-5 h-5" />
           </div>
           <div>
-            <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+            <h3 class="text-base font-bold uppercase tracking-tight">
               删除分类：{{ category.name }}
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">
-              该分类下当前共有 <strong class="text-slate-700 dark:text-slate-200">{{ websiteCount }}</strong> 个网址
+            <p class="text-xs font-mono text-gray-500 mt-0.5">
+              包含 {{ websiteCount }} 个网址
             </p>
           </div>
         </div>
 
         <!-- Options if there are websites inside -->
-        <div v-if="websiteCount > 0" class="mt-5 space-y-2.5">
+        <div v-if="websiteCount > 0" class="space-y-3">
           <label
-            class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-colors"
+            class="flex items-start gap-3 p-4 border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black cursor-pointer transition-colors duration-200 rounded-none group"
           >
             <input
               type="radio"
               :value="false"
               v-model="deleteWebsites"
-              class="mt-0.5 text-brand-600 focus:ring-brand-500"
+              class="mt-1 accent-black dark:accent-white"
             />
             <div class="text-xs">
-              <span class="font-medium text-slate-800 dark:text-slate-200">转移到【未分类】（推荐）</span>
-              <p class="text-slate-400 mt-0.5">
-                保留该分类下的所有网址，将其分类变更为“未分类”，以便后续重新归类
+              <span class="font-bold uppercase tracking-wider">保留网址并转入【未分类】（推荐）</span>
+              <p class="text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-600 mt-1">
+                分类被移除，但其中的网址保留并可以在未分类中重新归整
               </p>
             </div>
           </label>
 
           <label
-            class="flex items-start gap-3 p-3 rounded-xl border border-rose-200/60 dark:border-rose-900/40 bg-rose-50/30 dark:bg-rose-950/20 hover:bg-rose-50/70 cursor-pointer transition-colors"
+            class="flex items-start gap-3 p-4 border-2 border-[#ff3366] text-[#ff3366] hover:bg-[#ff3366] hover:text-white cursor-pointer transition-colors duration-200 rounded-none group"
           >
             <input
               type="radio"
               :value="true"
               v-model="deleteWebsites"
-              class="mt-0.5 text-rose-600 focus:ring-rose-500"
+              class="mt-1 accent-[#ff3366]"
             />
             <div class="text-xs">
-              <span class="font-medium text-rose-700 dark:text-rose-400">一并删除其中的所有网址</span>
-              <p class="text-rose-500/80 dark:text-rose-400/70 mt-0.5">
-                连同该分类及其包含的 {{ websiteCount }} 个网址彻底删除，不可恢复
+              <span class="font-bold uppercase tracking-wider">一并彻底删除所有网址</span>
+              <p class="text-[#ff3366]/80 group-hover:text-white mt-1">
+                连同该分类下的 {{ websiteCount }} 个网址一并删除，不可恢复
               </p>
             </div>
           </label>
         </div>
 
-        <p v-else class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        <p v-else class="text-xs text-gray-500 font-mono">
           该分类下无任何网址，确认删除吗？
         </p>
 
         <!-- Error Msg -->
-        <div v-if="errorMsg" class="mt-3 p-3 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
+        <div v-if="errorMsg" class="mt-4 p-3 text-xs font-mono font-bold text-white bg-[#ff3366] rounded-none">
           {{ errorMsg }}
         </div>
 
         <!-- Footer Actions -->
-        <div class="mt-6 flex items-center justify-end gap-3">
+        <div class="mt-6 pt-4 border-t-2 border-black dark:border-white flex items-center justify-end gap-3">
           <button
             type="button"
             @click="close"
-            class="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none"
           >
             取消
           </button>
@@ -82,7 +82,7 @@
             type="button"
             @click="handleConfirm"
             :disabled="deleting"
-            class="px-5 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-500 disabled:opacity-50 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+            class="border-2 border-[#ff3366] bg-[#ff3366] text-white hover:bg-black hover:border-black px-6 py-2.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center gap-2"
           >
             <Loader2 v-if="deleting" class="w-3.5 h-3.5 animate-spin" />
             <span>确认删除</span>

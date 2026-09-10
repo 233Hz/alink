@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+  <div class="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white transition-colors">
     <!-- Navbar -->
     <Navbar
       @toggle-mobile-sidebar="isMobileDrawerOpen = true"
@@ -23,22 +23,22 @@
       </div>
 
       <!-- Main Content Area -->
-      <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main class="flex-1 min-w-0 p-6 md:p-12 overflow-y-auto">
         <!-- Global Loading Indicator -->
-        <div v-if="navStore.loading && navStore.websites.length === 0" class="flex flex-col items-center justify-center py-24">
-          <Loader2 class="w-8 h-8 text-brand-600 animate-spin mb-3" />
-          <p class="text-xs text-slate-400">正在同步导航数据...</p>
+        <div v-if="navStore.loading && navStore.websites.length === 0" class="flex flex-col items-center justify-center py-32">
+          <Loader2 class="w-8 h-8 animate-spin mb-3 text-black dark:text-white" />
+          <p class="text-xs font-mono text-gray-500 uppercase tracking-widest">正在同步导航数据...</p>
         </div>
 
         <!-- Global Error Banner -->
         <div
           v-else-if="navStore.error"
-          class="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between text-xs text-rose-600 dark:text-rose-400"
+          class="mb-8 p-4 border-2 border-[#ff3366] text-[#ff3366] rounded-none flex items-center justify-between text-xs font-mono"
         >
           <span>{{ navStore.error }}</span>
           <button
             @click="navStore.fetchData"
-            class="px-3 py-1 bg-rose-600 text-white rounded-lg hover:bg-rose-500 font-medium"
+            class="px-4 py-1.5 border-2 border-[#ff3366] bg-[#ff3366] text-white hover:bg-black hover:border-black font-bold uppercase rounded-none transition-colors"
           >
             重试
           </button>
@@ -103,7 +103,7 @@
     <!-- Mobile Floating Add Button (FAB) -->
     <button
       @click="openAddWebsiteModal(null)"
-      class="sm:hidden fixed bottom-6 right-6 z-30 w-12 h-12 rounded-full bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center transition-transform active:scale-95"
+      class="sm:hidden fixed bottom-6 right-6 z-30 w-12 h-12 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none font-bold hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors"
       title="添加网址"
     >
       <Plus class="w-6 h-6" />
@@ -173,9 +173,7 @@ async function handleMoveWebsiteDown(site: Website) {
   await navStore.moveWebsiteDown(site.id);
 }
 
-function handleWebsiteSaved() {
-  // refresh or notify if needed
-}
+function handleWebsiteSaved() {}
 
 function openAddCategoryModal() {
   categoryToEdit.value = null;

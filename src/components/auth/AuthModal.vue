@@ -1,61 +1,61 @@
 <template>
   <div
     v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
     @click.self="close"
   >
     <div
-      class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
+      class="w-full max-w-sm bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none overflow-hidden"
     >
       <!-- Header -->
-      <div class="px-6 pt-6 pb-4 text-center">
-        <div class="w-12 h-12 mx-auto rounded-2xl bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-3">
-          <Link2 class="w-6 h-6" />
+      <div class="p-6 text-center border-b-2 border-black dark:border-white">
+        <div class="w-12 h-12 mx-auto border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center mb-3 font-black text-xl rounded-none">
+          A
         </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">
-          {{ isSignUp ? '创建 ALink 账号' : '欢迎回到 ALink' }}
+        <h3 class="text-xl font-bold tracking-tight uppercase">
+          {{ isSignUp ? '创建 ALink 账号' : '登录 ALink 账号' }}
         </h3>
-        <p class="text-xs text-slate-400 mt-1">
+        <p class="text-xs font-mono text-gray-500 mt-1">
           {{ isSignUp ? '注册账号即可拥有专属云端书签与分类' : '登录后管理你的专属分类与收藏网址' }}
         </p>
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="px-6 pb-6 space-y-4">
+      <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
         <div>
-          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             电子邮箱
           </label>
-          <div class="relative">
+          <div class="relative flex items-center">
+            <Mail class="w-4 h-4 text-black dark:text-white absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               v-model="email"
               type="email"
               required
               placeholder="you@example.com"
-              class="w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-slate-400"
+              class="w-full pl-7 pr-2 py-2 text-sm border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] transition-colors placeholder:text-gray-400"
             />
-            <Mail class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
             密码
           </label>
-          <div class="relative">
+          <div class="relative flex items-center">
+            <Lock class="w-4 h-4 text-black dark:text-white absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
               required
               minlength="6"
               placeholder="至少 6 位密码"
-              class="w-full pl-9 pr-10 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all placeholder:text-slate-400"
+              class="w-full pl-7 pr-8 py-2 text-sm border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] transition-colors placeholder:text-gray-400"
             />
-            <Lock class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <button
               type="button"
               @click="showPassword = !showPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              class="absolute right-0 top-1/2 -translate-y-1/2 text-black dark:text-white p-1"
             >
               <EyeOff v-if="showPassword" class="w-4 h-4" />
               <Eye v-else class="w-4 h-4" />
@@ -64,10 +64,10 @@
         </div>
 
         <!-- Feedback Alert -->
-        <div v-if="errorMsg" class="p-3 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/30 rounded-xl">
+        <div v-if="errorMsg" class="p-3 text-xs font-mono font-bold text-white bg-[#ff3366] rounded-none">
           {{ errorMsg }}
         </div>
-        <div v-if="successMsg" class="p-3 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl">
+        <div v-if="successMsg" class="p-3 text-xs font-mono font-bold text-black dark:text-white border-2 border-black dark:border-white rounded-none">
           {{ successMsg }}
         </div>
 
@@ -75,32 +75,32 @@
         <button
           type="submit"
           :disabled="submitting"
-          class="w-full py-2.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 disabled:opacity-50 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1.5"
+          class="w-full py-3 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black border-2 border-black dark:border-white hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors duration-200 rounded-none flex items-center justify-center gap-2"
         >
           <Loader2 v-if="submitting" class="w-3.5 h-3.5 animate-spin" />
-          <span>{{ isSignUp ? '注 册' : '登 录' }}</span>
+          <span>{{ isSignUp ? '立即注册' : '登 录' }}</span>
         </button>
 
         <!-- Mode Toggle -->
-        <div class="text-center text-xs text-slate-500 dark:text-slate-400 pt-1">
+        <div class="text-center text-xs text-gray-500 pt-1">
           <span>{{ isSignUp ? '已有账号？' : '还没有账号？' }}</span>
           <button
             type="button"
             @click="isSignUp = !isSignUp; errorMsg = ''; successMsg = '';"
-            class="ml-1 font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+            class="ml-1 font-bold text-black dark:text-white hover:text-[#ff3366] underline transition-colors"
           >
             {{ isSignUp ? '去登录' : '立即注册' }}
           </button>
         </div>
 
-        <!-- Guest / Demo Experience Mode -->
-        <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+        <!-- Guest Experience Button -->
+        <div class="pt-4 border-t-2 border-black dark:border-white">
           <button
             type="button"
             @click="handleGuestExperience"
-            class="w-full py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            class="w-full py-2.5 text-xs font-bold uppercase tracking-wider border-2 border-black dark:border-white bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none flex items-center justify-center gap-2"
           >
-            <Sparkles class="w-3.5 h-3.5 text-amber-500" />
+            <Sparkles class="w-3.5 h-3.5 text-[#ff3366]" />
             <span>免登录访客体验模式</span>
           </button>
         </div>
@@ -111,7 +111,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Link2, Mail, Lock, Eye, EyeOff, Loader2, Sparkles } from '@lucide/vue';
+import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useNavStore } from '../../stores/nav';
 

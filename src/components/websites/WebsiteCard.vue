@@ -1,32 +1,32 @@
 <template>
   <div
-    class="group relative flex flex-col justify-between p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-brand-500/40 dark:hover:border-brand-500/40 transition-all duration-200"
+    class="group relative border-2 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none p-6 flex flex-col justify-between"
   >
     <!-- Top Row: Icon, Title & Domain, Order Badge & Actions Menu -->
-    <div class="flex items-start justify-between gap-2.5">
+    <div class="flex items-start justify-between gap-3">
       <!-- Clickable Title & Icon -->
       <a
         :href="normalizedUrl"
         target="_blank"
         rel="noopener noreferrer"
-        class="flex items-center gap-3 flex-1 min-w-0 group/link"
+        class="flex items-center gap-3.5 flex-1 min-w-0"
         :title="website.title + ' - ' + website.url"
       >
-        <!-- Favicon / Custom Icon / Fallback -->
+        <!-- Favicon / Fallback -->
         <div
-          class="relative flex-shrink-0 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-center overflow-hidden transition-transform group-hover/link:scale-105"
+          class="w-12 h-12 border-2 border-black dark:border-white rounded-none bg-white flex items-center justify-center overflow-hidden flex-shrink-0 p-1"
         >
           <img
             v-if="iconSrc"
             :src="iconSrc"
             :alt="website.title"
-            class="w-6 h-6 object-contain"
+            class="w-7 h-7 object-contain"
             loading="lazy"
             @error="handleImgError"
           />
           <span
             v-else
-            class="text-sm font-semibold uppercase text-brand-600 dark:text-brand-400 select-none"
+            class="text-base font-black uppercase text-black select-none"
           >
             {{ letterBadge }}
           </span>
@@ -34,27 +34,22 @@
 
         <!-- Title & Hostname -->
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1">
-            <h3
-              class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400 transition-colors"
-            >
-              {{ website.title }}
-            </h3>
-            <ExternalLink
-              class="w-3 h-3 opacity-0 group-hover/link:opacity-100 text-slate-400 dark:text-slate-500 transition-opacity flex-shrink-0"
-            />
-          </div>
-          <p class="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
+          <h3 class="font-bold tracking-tight text-base sm:text-lg truncate">
+            {{ website.title }}
+          </h3>
+          <p
+            class="text-xs font-mono text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-600 truncate mt-0.5"
+          >
             {{ displayDomain }}
           </p>
         </div>
       </a>
 
-      <!-- Right Action Items: Order Badge + More Menu -->
-      <div class="flex items-center gap-1 flex-shrink-0 ml-1">
+      <!-- Right Action Items: Order Badge + Menu -->
+      <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
         <!-- Order badge -->
         <span
-          class="text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded whitespace-nowrap"
+          class="text-xs font-mono px-1.5 py-0.5 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none whitespace-nowrap"
           title="排序序号"
         >
           #{{ website.order_index }}
@@ -64,57 +59,57 @@
         <div class="relative" ref="menuRef">
           <button
             @click.stop="toggleMenu"
-            class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
+            class="p-1 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none transition-colors"
             title="更多操作"
           >
-            <MoreVertical class="w-4 h-4" />
+            <MoreVertical class="w-3.5 h-3.5" />
           </button>
 
           <!-- Dropdown popup -->
           <div
             v-if="isMenuOpen"
             @click.stop
-            class="absolute right-0 mt-1 w-36 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-30 animate-in fade-in zoom-in-95 duration-100"
+            class="absolute right-0 mt-1 w-36 py-1 bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none z-30"
           >
             <button
               @click="handleEdit"
-              class="w-full px-3 py-1.5 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+              class="w-full px-3 py-1.5 text-left text-xs font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center gap-2 transition-colors duration-200"
             >
-              <Pencil class="w-3.5 h-3.5 text-slate-400" />
+              <Pencil class="w-3.5 h-3.5" />
               编辑网址
             </button>
             <button
               @click="handleMoveUp"
               :disabled="isFirst"
               :class="[
-                'w-full px-3 py-1.5 text-left text-xs font-medium flex items-center gap-2',
+                'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
                 isFirst
-                  ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800',
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
               ]"
             >
-              <ArrowUp class="w-3.5 h-3.5 text-slate-400" />
+              <ArrowUp class="w-3.5 h-3.5" />
               向前移动
             </button>
             <button
               @click="handleMoveDown"
               :disabled="isLast"
               :class="[
-                'w-full px-3 py-1.5 text-left text-xs font-medium flex items-center gap-2',
+                'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
                 isLast
-                  ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800',
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
               ]"
             >
-              <ArrowDown class="w-3.5 h-3.5 text-slate-400" />
+              <ArrowDown class="w-3.5 h-3.5" />
               向后移动
             </button>
-            <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
+            <div class="border-t border-black dark:border-white my-1"></div>
             <button
               @click="handleDelete"
-              class="w-full px-3 py-1.5 text-left text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+              class="w-full px-3 py-1.5 text-left text-xs font-bold text-[#ff3366] hover:bg-[#ff3366] hover:text-white flex items-center gap-2 transition-colors duration-200"
             >
-              <Trash2 class="w-3.5 h-3.5 text-rose-500" />
+              <Trash2 class="w-3.5 h-3.5" />
               删除网址
             </button>
           </div>
@@ -122,24 +117,30 @@
       </div>
     </div>
 
-    <!-- Description (uniform 2-line height) -->
+    <!-- Description -->
     <p
-      class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed h-9"
+      class="mt-4 text-xs sm:text-sm leading-relaxed text-gray-500 dark:text-gray-400 group-hover:text-gray-300 dark:group-hover:text-gray-600 line-clamp-2 h-10"
       :title="website.description || ''"
     >
-      {{ website.description || '暂无描述' }}
+      {{ website.description || '暂无描述信息' }}
     </p>
 
-    <!-- Bottom Bar: Hostname & Direct Visit Link -->
-    <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-      <span class="text-[11px] text-slate-400 dark:text-slate-500 truncate flex-1 min-w-0" :title="website.url">
+    <!-- Bottom Bar: URL & Direct Visit Link -->
+    <div
+      class="mt-4 pt-3 border-t-2 border-black dark:border-white group-hover:border-white dark:group-hover:border-black flex items-center justify-between gap-3"
+    >
+      <span
+        class="text-xs font-mono text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-600 truncate flex-1 min-w-0"
+        :title="website.url"
+      >
         {{ displayDomain }}
       </span>
+
       <a
         :href="normalizedUrl"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 bg-brand-50/80 dark:bg-brand-950/40 hover:bg-brand-100 dark:hover:bg-brand-900/60 px-2 py-0.5 rounded-md transition-colors flex-shrink-0 whitespace-nowrap"
+        class="border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black group-hover:bg-white group-hover:text-black dark:group-hover:bg-black dark:group-hover:text-white hover:border-[#ff3366] px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none inline-flex items-center gap-1.5 transition-colors duration-200 whitespace-nowrap flex-shrink-0"
       >
         <span>直达</span>
         <ExternalLink class="w-3 h-3" />
@@ -176,7 +177,6 @@ const displayDomain = computed(() => extractDomain(props.website.url));
 
 const iconSrc = computed(() => {
   if (imgFailed.value) return '';
-  // If user provided a specific icon URL that does not end in /favicon.ico, use it
   if (
     props.website.icon_url &&
     props.website.icon_url.trim() &&
@@ -184,7 +184,6 @@ const iconSrc = computed(() => {
   ) {
     return props.website.icon_url.trim();
   }
-  // Otherwise use Google's high-resolution favicon service
   return getFaviconUrl(props.website.url);
 });
 

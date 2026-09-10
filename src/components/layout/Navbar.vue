@@ -1,112 +1,111 @@
 <template>
   <header
-    class="sticky top-0 z-40 w-full backdrop-blur-md bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors"
+    class="sticky top-0 z-40 w-full bg-white dark:bg-black text-black dark:text-white border-b-2 border-black dark:border-white transition-colors"
   >
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 sm:gap-6">
+    <div class="max-w-[1600px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-4">
       <!-- Left: Mobile Menu Toggle & Brand Logo -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
         <button
           type="button"
           @click="emit('toggle-mobile-sidebar')"
-          class="p-2 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden transition-colors"
+          class="p-2 border-2 border-black dark:border-white md:hidden hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors"
           title="打开菜单"
         >
-          <Menu class="w-5 h-5" />
+          <Menu class="w-4 h-4" />
         </button>
 
-        <a href="#" @click.prevent="navStore.activeCategoryId = 'ALL'" class="flex items-center gap-2.5 group">
+        <a
+          href="#"
+          @click.prevent="navStore.activeCategoryId = 'ALL'"
+          class="flex items-center gap-3 group"
+        >
           <div
-            class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform"
+            class="w-9 h-9 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-black text-base rounded-none"
           >
-            <BookmarkCheck class="w-5 h-5" />
+            A
           </div>
-          <div class="hidden sm:block">
-            <h1 class="text-base font-extrabold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-              ALink
-            </h1>
-            <p class="text-[10px] text-slate-400 font-medium -mt-1 tracking-wider uppercase">
-              网页聚合导航
-            </p>
-          </div>
+          <span class="font-black tracking-tight text-xl uppercase hidden sm:inline-block">
+            ALink
+          </span>
         </a>
       </div>
 
-      <!-- Center: Global Real-time Search -->
-      <div class="flex-1 max-w-md mx-2 sm:mx-4">
-        <div class="relative">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <!-- Center: Global Search Input -->
+      <div class="flex-1 max-w-lg mx-2">
+        <div class="relative flex items-center">
+          <Search class="w-4 h-4 text-black dark:text-white absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             v-model="navStore.searchQuery"
             type="text"
             placeholder="搜索网址、名称或描述..."
-            class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all placeholder:text-slate-400"
+            class="w-full pl-7 pr-8 py-1.5 text-sm border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] dark:focus:border-[#ff3366] transition-colors duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-600"
           />
           <button
             v-if="navStore.searchQuery"
             @click="navStore.searchQuery = ''"
-            class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            class="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-black dark:text-white hover:text-[#ff3366]"
           >
-            <X class="w-3.5 h-3.5" />
+            <X class="w-4 h-4" />
           </button>
         </div>
       </div>
 
       <!-- Right: Action Buttons & User Profile -->
-      <div class="flex items-center gap-1.5 sm:gap-2.5">
+      <div class="flex items-center gap-2 sm:gap-3">
         <!-- Reorder Manager Button -->
         <button
           @click="emit('open-reorder')"
-          class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+          class="p-2 border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200"
           title="排序管理中心"
         >
           <ArrowUpDown class="w-4 h-4" />
         </button>
 
-        <!-- Quick Add Website -->
+        <!-- Quick Add Website Button -->
         <button
           @click="emit('open-add-website')"
-          class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl shadow-sm transition-all hover:shadow-brand-500/20 active:scale-95"
+          class="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black border-2 border-black dark:border-white hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors duration-200 rounded-none"
         >
-          <Plus class="w-3.5 h-3.5" />
+          <Plus class="w-4 h-4" />
           <span>添加网址</span>
         </button>
 
         <!-- Theme Toggle -->
         <button
           @click="themeStore.toggleTheme"
-          class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+          class="p-2 border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200"
           :title="themeStore.isDark ? '切换到亮色模式' : '切换到暗黑模式'"
         >
-          <Sun v-if="themeStore.isDark" class="w-4 h-4 text-amber-400" />
-          <Moon v-else class="w-4 h-4 text-slate-600" />
+          <Sun v-if="themeStore.isDark" class="w-4 h-4" />
+          <Moon v-else class="w-4 h-4" />
         </button>
 
-        <!-- User / Auth State -->
+        <!-- User / Auth Dropdown -->
         <div v-if="authStore.isAuthenticated" class="relative" ref="userMenuRef">
           <button
             @click="isUserMenuOpen = !isUserMenuOpen"
-            class="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            class="flex items-center p-1 border-2 border-black dark:border-white rounded-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
           >
-            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center">
+            <div class="w-6 h-6 bg-black text-white dark:bg-white dark:text-black font-black text-xs flex items-center justify-center">
               {{ (authStore.user?.email || 'U').charAt(0).toUpperCase() }}
             </div>
           </button>
 
-          <!-- Dropdown -->
+          <!-- Dropdown popup -->
           <div
             v-if="isUserMenuOpen"
             @click.stop
-            class="absolute right-0 mt-2 w-52 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100"
+            class="absolute right-0 mt-2 w-56 p-2 bg-white dark:bg-black border-2 border-black dark:border-white rounded-none z-50"
           >
-            <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-              <p class="text-[11px] text-slate-400">已登录账号</p>
-              <p class="text-xs font-medium text-slate-800 dark:text-slate-200 truncate mt-0.5">
+            <div class="px-3 py-2 border-b-2 border-black dark:border-white mb-2">
+              <p class="text-[10px] font-mono uppercase text-gray-500">已登录账号</p>
+              <p class="text-xs font-mono font-bold truncate mt-0.5">
                 {{ authStore.user?.email }}
               </p>
             </div>
             <button
               @click="handleSignOut"
-              class="w-full px-4 py-2 text-left text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+              class="w-full px-3 py-2 text-left text-xs font-bold text-[#ff3366] hover:bg-[#ff3366] hover:text-white flex items-center gap-2 transition-colors duration-200"
             >
               <LogOut class="w-3.5 h-3.5" />
               退出登录
@@ -118,7 +117,7 @@
         <button
           v-else
           @click="emit('open-auth')"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+          class="border-2 border-black dark:border-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200 inline-flex items-center gap-1.5"
         >
           <User class="w-3.5 h-3.5" />
           <span>{{ authStore.isGuest ? '登录账号' : '登录 / 注册' }}</span>
@@ -132,7 +131,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import {
   Menu,
-  BookmarkCheck,
   Search,
   X,
   Plus,
