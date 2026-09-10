@@ -12,7 +12,7 @@
     <MobileCategoryNav />
 
     <!-- Main Container: Sidebar + Content -->
-    <div class="flex-1 flex max-w-[1600px] w-full mx-auto overflow-hidden">
+    <div class="flex-1 flex w-full overflow-hidden">
       <!-- Desktop Sidebar -->
       <div class="hidden md:block flex-shrink-0">
         <Sidebar
@@ -23,7 +23,7 @@
       </div>
 
       <!-- Main Content Area -->
-      <main class="flex-1 min-w-0 p-6 md:p-12 overflow-y-auto">
+      <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">
         <!-- Global Loading Indicator -->
         <div v-if="navStore.loading && navStore.websites.length === 0" class="flex flex-col items-center justify-center py-32">
           <Loader2 class="w-8 h-8 animate-spin mb-3 text-black dark:text-white" />

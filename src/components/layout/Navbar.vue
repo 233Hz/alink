@@ -2,7 +2,7 @@
   <header
     class="sticky top-0 z-40 w-full bg-white dark:bg-black text-black dark:text-white border-b-2 border-black dark:border-white transition-colors"
   >
-    <div class="max-w-[1600px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between gap-4">
+    <div class="w-full px-4 md:px-8 h-16 flex items-center justify-between gap-4">
       <!-- Left: Mobile Menu Toggle & Brand Logo -->
       <div class="flex items-center gap-4">
         <button
@@ -117,10 +117,11 @@
         <button
           v-else
           @click="emit('open-auth')"
-          class="border-2 border-black dark:border-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200 inline-flex items-center gap-1.5"
+          class="p-2 sm:px-3 sm:py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200 inline-flex items-center justify-center gap-1.5 whitespace-nowrap flex-shrink-0"
+          :title="authStore.isGuest ? '登录账号' : '登录 / 注册'"
         >
-          <User class="w-3.5 h-3.5" />
-          <span>{{ authStore.isGuest ? '登录账号' : '登录 / 注册' }}</span>
+          <User class="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+          <span class="hidden sm:inline">{{ authStore.isGuest ? '登录账号' : '登录 / 注册' }}</span>
         </button>
       </div>
     </div>

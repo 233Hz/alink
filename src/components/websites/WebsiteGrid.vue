@@ -3,28 +3,30 @@
     <!-- Searching or Specific Category View -->
     <div v-if="isFilteredView">
       <!-- Section Header -->
-      <div class="flex items-center justify-between border-b-2 border-black dark:border-white pb-4 mb-8">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center justify-between gap-3 border-b-2 border-black dark:border-white pb-3 sm:pb-4 mb-6 sm:mb-8">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
           <div
             v-if="currentCategory"
-            class="w-10 h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none"
+            class="w-8 h-8 sm:w-10 sm:h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none flex-shrink-0"
           >
-            <DynamicIcon :icon="currentCategory.icon" :size="20" custom-class="w-5 h-5" />
+            <DynamicIcon :icon="currentCategory.icon" :size="18" custom-class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div
             v-else-if="navStore.activeCategoryId === 'UNCATEGORIZED'"
-            class="w-10 h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none"
+            class="w-8 h-8 sm:w-10 sm:h-10 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none flex-shrink-0"
           >
-            <Bookmark class="w-5 h-5" />
+            <Bookmark class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h2 class="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
-              <span>{{ headerTitle }}</span>
-              <span class="text-xs font-mono font-normal border-2 border-black dark:border-white px-2 py-0.5 rounded-none">
-                {{ navStore.filteredWebsites.length }} ITEMS
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 min-w-0">
+              <h2 class="text-base sm:text-2xl md:text-3xl font-bold tracking-tight truncate whitespace-nowrap">
+                {{ headerTitle }}
+              </h2>
+              <span class="text-xs font-mono font-normal border-2 border-black dark:border-white px-1.5 sm:px-2 py-0.5 rounded-none whitespace-nowrap flex-shrink-0">
+                {{ navStore.filteredWebsites.length }}<span class="hidden sm:inline"> ITEMS</span>
               </span>
-            </h2>
-            <p v-if="headerSubtitle" class="text-xs font-mono text-gray-500 mt-1">
+            </div>
+            <p v-if="headerSubtitle" class="text-xs font-mono text-gray-500 mt-0.5 truncate">
               {{ headerSubtitle }}
             </p>
           </div>
@@ -34,9 +36,9 @@
         <button
           v-if="!navStore.searchQuery"
           @click="emit('add-website', navStore.activeCategoryId === 'UNCATEGORIZED' ? null : navStore.activeCategoryId)"
-          class="border-2 border-black dark:border-white px-4 py-2 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors duration-200 rounded-none inline-flex items-center gap-2"
+          class="border-2 border-black dark:border-white px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors duration-200 rounded-none inline-flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
         >
-          <Plus class="w-4 h-4" />
+          <Plus class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>添加网址</span>
         </button>
       </div>
@@ -44,7 +46,7 @@
       <!-- Websites Grid -->
       <div
         v-if="navStore.filteredWebsites.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6"
       >
         <WebsiteCard
           v-for="(site, idx) in navStore.filteredWebsites"
@@ -99,30 +101,32 @@
         class="space-y-6"
       >
         <!-- Category Section Header -->
-        <div class="flex items-center justify-between border-b-2 border-black dark:border-white pb-3">
-          <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between border-b-2 border-black dark:border-white pb-3 gap-2 sm:gap-4">
+          <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
             <div
-              class="w-8 h-8 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none"
+              class="w-7 h-7 sm:w-8 sm:h-8 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center rounded-none flex-shrink-0"
             >
               <DynamicIcon
                 v-if="group.category"
                 :icon="group.category.icon"
-                :size="16"
-                custom-class="w-4 h-4"
+                :size="15"
+                custom-class="w-3.5 h-3.5"
               />
-              <Bookmark v-else class="w-4 h-4" />
+              <Bookmark v-else class="w-3.5 h-3.5" />
             </div>
-            <h2 class="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-3">
-              <span>{{ group.category ? group.category.name : '未分类' }}</span>
-              <span class="text-xs font-mono border border-black dark:border-white px-2 py-0.5 rounded-none font-normal">
+            <div class="flex items-center gap-2 min-w-0">
+              <h2 class="text-base sm:text-xl md:text-2xl font-bold tracking-tight truncate whitespace-nowrap">
+                {{ group.category ? group.category.name : '未分类' }}
+              </h2>
+              <span class="text-xs font-mono border border-black dark:border-white px-1.5 py-0.5 rounded-none font-normal whitespace-nowrap flex-shrink-0">
                 {{ group.websites.length }}
               </span>
-            </h2>
+            </div>
           </div>
 
           <button
             @click="emit('add-website', group.category && group.category.id !== 'UNCATEGORIZED' ? group.category.id : null)"
-            class="border-2 border-black dark:border-white px-3 py-1 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none flex items-center gap-1"
+            class="border-2 border-black dark:border-white px-2.5 py-1 sm:px-3 sm:py-1 text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none flex items-center gap-1 whitespace-nowrap flex-shrink-0"
           >
             <Plus class="w-3.5 h-3.5" />
             <span>添加网址</span>
@@ -130,7 +134,7 @@
         </div>
 
         <!-- Cards in this category -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6">
           <WebsiteCard
             v-for="(site, idx) in group.websites"
             :key="site.id"
