@@ -32,16 +32,11 @@
           </span>
         </div>
 
-        <!-- Title & Hostname -->
+        <!-- Title -->
         <div class="min-w-0 flex-1">
           <h3 class="font-bold tracking-tight text-base sm:text-lg truncate">
             {{ website.title }}
           </h3>
-          <p
-            class="text-xs font-mono text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-600 truncate mt-0.5"
-          >
-            {{ displayDomain }}
-          </p>
         </div>
       </a>
 
@@ -117,25 +112,19 @@
       </div>
     </div>
 
-    <!-- Description -->
+    <!-- Description (only rendered if non-empty) -->
     <p
-      class="mt-4 text-xs sm:text-sm leading-relaxed text-gray-500 dark:text-gray-400 group-hover:text-gray-300 dark:group-hover:text-gray-600 line-clamp-2 h-10"
-      :title="website.description || ''"
+      v-if="website.description && website.description.trim()"
+      class="mt-3 text-xs sm:text-sm leading-relaxed text-gray-500 dark:text-gray-400 group-hover:text-gray-300 dark:group-hover:text-gray-600 line-clamp-2"
+      :title="website.description"
     >
-      {{ website.description || '暂无描述信息' }}
+      {{ website.description }}
     </p>
 
-    <!-- Bottom Bar: URL & Direct Visit Link -->
+    <!-- Bottom Bar: Direct Visit Link -->
     <div
-      class="mt-4 pt-3 border-t-2 border-black dark:border-white group-hover:border-white dark:group-hover:border-black flex items-center justify-between gap-3"
+      class="mt-4 pt-3 border-t-2 border-black dark:border-white group-hover:border-white dark:group-hover:border-black flex items-center justify-end"
     >
-      <span
-        class="text-xs font-mono text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-600 truncate flex-1 min-w-0"
-        :title="website.url"
-      >
-        {{ displayDomain }}
-      </span>
-
       <a
         :href="normalizedUrl"
         target="_blank"
