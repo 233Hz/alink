@@ -1,139 +1,136 @@
 <template>
   <div
-    class="group relative border-2 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none p-6 flex flex-col justify-between"
+    class="group relative border-2 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors duration-200 rounded-none p-4 sm:p-5 flex items-stretch gap-3.5 sm:gap-4"
+    :title="website.title + (website.description ? ' - ' + website.description : '') + ' (' + website.url + ')'"
   >
-    <!-- Top Row: Icon, Title & Domain, Order Badge & Actions Menu -->
-    <div class="flex items-start justify-between gap-3">
-      <!-- Clickable Title & Icon -->
-      <a
-        :href="normalizedUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="flex items-center gap-3.5 flex-1 min-w-0"
-        :title="website.title + ' - ' + website.url"
+    <!-- Left: Favicon / Fallback Icon -->
+    <a
+      :href="normalizedUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="flex-shrink-0"
+      :title="website.title"
+    >
+      <div
+        class="w-12 h-12 sm:w-14 sm:h-14 border-2 border-black dark:border-white rounded-none bg-white flex items-center justify-center overflow-hidden p-1"
       >
-        <!-- Favicon / Fallback -->
-        <div
-          class="w-12 h-12 border-2 border-black dark:border-white rounded-none bg-white flex items-center justify-center overflow-hidden flex-shrink-0 p-1"
+        <img
+          v-if="iconSrc"
+          :src="iconSrc"
+          :alt="website.title"
+          class="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+          loading="lazy"
+          @error="handleImgError"
+        />
+        <span
+          v-else
+          class="text-base sm:text-lg font-black uppercase text-black select-none"
         >
-          <img
-            v-if="iconSrc"
-            :src="iconSrc"
-            :alt="website.title"
-            class="w-7 h-7 object-contain"
-            loading="lazy"
-            @error="handleImgError"
-          />
-          <span
-            v-else
-            class="text-base font-black uppercase text-black select-none"
-          >
-            {{ letterBadge }}
-          </span>
-        </div>
+          {{ letterBadge }}
+        </span>
+      </div>
+    </a>
 
-        <!-- Title -->
-        <div class="min-w-0 flex-1">
-          <h3 class="font-bold tracking-tight text-base sm:text-lg truncate">
+    <!-- Right: Content Column (Top: Title & Actions, Bottom: Direct Button) -->
+    <div class="flex-1 min-w-0 flex flex-col justify-between self-stretch min-h-[48px] sm:min-h-[56px]">
+      <!-- Top Row: Title (aligned with top) & Order Badge + Menu -->
+      <div class="flex items-center justify-between gap-2">
+        <a
+          :href="normalizedUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="min-w-0 flex-1 truncate"
+          :title="website.title"
+        >
+          <h3 class="font-bold tracking-tight text-base sm:text-lg truncate leading-tight">
             {{ website.title }}
           </h3>
-        </div>
-      </a>
+        </a>
 
-      <!-- Right Action Items: Order Badge + Menu -->
-      <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
-        <!-- Order badge -->
-        <span
-          class="text-xs font-mono px-1.5 py-0.5 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none whitespace-nowrap"
-          title="排序序号"
-        >
-          #{{ website.order_index }}
-        </span>
-
-        <!-- Dropdown trigger -->
-        <div class="relative" ref="menuRef">
-          <button
-            @click.stop="toggleMenu"
-            class="p-1 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none transition-colors"
-            title="更多操作"
+        <!-- Right Action Items: Order Badge + Menu -->
+        <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
+          <!-- Order badge -->
+          <span
+            class="text-xs font-mono px-1.5 py-0.5 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none whitespace-nowrap"
+            title="排序序号"
           >
-            <MoreVertical class="w-3.5 h-3.5" />
-          </button>
+            #{{ website.order_index }}
+          </span>
 
-          <!-- Dropdown popup -->
-          <div
-            v-if="isMenuOpen"
-            @click.stop
-            class="absolute right-0 mt-1 w-36 py-1 bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none z-30"
-          >
+          <!-- Dropdown trigger -->
+          <div class="relative" ref="menuRef">
             <button
-              @click="handleEdit"
-              class="w-full px-3 py-1.5 text-left text-xs font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center gap-2 transition-colors duration-200"
+              @click.stop="toggleMenu"
+              class="p-1 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none transition-colors"
+              title="更多操作"
             >
-              <Pencil class="w-3.5 h-3.5" />
-              编辑网址
+              <MoreVertical class="w-3.5 h-3.5" />
             </button>
-            <button
-              @click="handleMoveUp"
-              :disabled="isFirst"
-              :class="[
-                'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
-                isFirst
-                  ? 'opacity-30 cursor-not-allowed'
-                  : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
-              ]"
+
+            <!-- Dropdown popup -->
+            <div
+              v-if="isMenuOpen"
+              @click.stop
+              class="absolute right-0 mt-1 w-36 py-1 bg-white dark:bg-black text-black dark:text-white border-2 border-black dark:border-white rounded-none z-30"
             >
-              <ArrowUp class="w-3.5 h-3.5" />
-              向前移动
-            </button>
-            <button
-              @click="handleMoveDown"
-              :disabled="isLast"
-              :class="[
-                'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
-                isLast
-                  ? 'opacity-30 cursor-not-allowed'
-                  : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
-              ]"
-            >
-              <ArrowDown class="w-3.5 h-3.5" />
-              向后移动
-            </button>
-            <div class="border-t border-black dark:border-white my-1"></div>
-            <button
-              @click="handleDelete"
-              class="w-full px-3 py-1.5 text-left text-xs font-bold text-[#ff3366] hover:bg-[#ff3366] hover:text-white flex items-center gap-2 transition-colors duration-200"
-            >
-              <Trash2 class="w-3.5 h-3.5" />
-              删除网址
-            </button>
+              <button
+                @click="handleEdit"
+                class="w-full px-3 py-1.5 text-left text-xs font-bold hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center gap-2 transition-colors duration-200"
+              >
+                <Pencil class="w-3.5 h-3.5" />
+                编辑网址
+              </button>
+              <button
+                @click="handleMoveUp"
+                :disabled="isFirst"
+                :class="[
+                  'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
+                  isFirst
+                    ? 'opacity-30 cursor-not-allowed'
+                    : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
+                ]"
+              >
+                <ArrowUp class="w-3.5 h-3.5" />
+                向前移动
+              </button>
+              <button
+                @click="handleMoveDown"
+                :disabled="isLast"
+                :class="[
+                  'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
+                  isLast
+                    ? 'opacity-30 cursor-not-allowed'
+                    : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
+                ]"
+              >
+                <ArrowDown class="w-3.5 h-3.5" />
+                向后移动
+              </button>
+              <div class="border-t border-black dark:border-white my-1"></div>
+              <button
+                @click="handleDelete"
+                class="w-full px-3 py-1.5 text-left text-xs font-bold text-[#ff3366] hover:bg-[#ff3366] hover:text-white flex items-center gap-2 transition-colors duration-200"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+                删除网址
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Description (only rendered if non-empty) -->
-    <p
-      v-if="website.description && website.description.trim()"
-      class="mt-3 text-xs sm:text-sm leading-relaxed text-gray-500 dark:text-gray-400 group-hover:text-gray-300 dark:group-hover:text-gray-600 line-clamp-2"
-      :title="website.description"
-    >
-      {{ website.description }}
-    </p>
-
-    <!-- Bottom Bar: Direct Visit Link -->
-    <div
-      class="mt-4 pt-3 border-t-2 border-black dark:border-white group-hover:border-white dark:group-hover:border-black flex items-center justify-end"
-    >
-      <a
-        :href="normalizedUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black group-hover:bg-white group-hover:text-black dark:group-hover:bg-black dark:group-hover:text-white hover:border-[#ff3366] px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none inline-flex items-center gap-1.5 transition-colors duration-200 whitespace-nowrap flex-shrink-0"
-      >
-        <span>直达</span>
-        <ExternalLink class="w-3 h-3" />
-      </a>
+      <!-- Bottom Row: Direct Visit Button (aligned to bottom) -->
+      <div class="flex items-center justify-end mt-2">
+        <a
+          :href="normalizedUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black group-hover:bg-white group-hover:text-black dark:group-hover:bg-black dark:group-hover:text-white hover:border-[#ff3366] px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs font-bold uppercase tracking-wider rounded-none inline-flex items-center gap-1.5 transition-colors duration-200 whitespace-nowrap flex-shrink-0"
+        >
+          <span>直达</span>
+          <ExternalLink class="w-3 h-3" />
+        </a>
+      </div>
     </div>
   </div>
 </template>
