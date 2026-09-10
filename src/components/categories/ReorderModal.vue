@@ -211,13 +211,23 @@
 
       <!-- Footer Actions -->
       <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-black dark:border-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-black">
-        <button
-          type="button"
-          @click="autoReindex"
-          class="text-xs font-mono underline hover:text-[#ff3366] transition-colors text-left whitespace-nowrap self-start sm:self-center"
-        >
-          重置为连续序号 (0, 1, 2...)
-        </button>
+        <div class="flex items-center gap-2.5 text-xs font-mono self-start sm:self-center">
+          <button
+            type="button"
+            @click="autoReindex"
+            class="underline hover:text-[#ff3366] transition-colors whitespace-nowrap"
+          >
+            连续重置 (0, 1, 2...)
+          </button>
+          <span class="text-gray-400 dark:text-gray-600">/</span>
+          <button
+            type="button"
+            @click="sortByInputOrder"
+            class="underline hover:text-[#ff3366] transition-colors whitespace-nowrap"
+          >
+            按输入序号重排
+          </button>
+        </div>
 
         <div class="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <button
@@ -294,12 +304,28 @@ function moveCategoryItem(index: number, direction: -1 | 1) {
   const current = localCategories.value[index];
   const sibling = localCategories.value[target];
 
-  const temp = current.order_index;
-  current.order_index = sibling.order_index;
-  sibling.order_index = temp;
+  let currentOrder = current.order_index;
+  let siblingOrder = sibling.order_index;
 
-  localCategories.value[index] = sibling;
-  localCategories.value[target] = current;
+  if (currentOrder === siblingOrder) {
+    if (direction === -1) {
+      currentOrder = Math.max(0, siblingOrder - 1);
+    } else {
+      currentOrder = siblingOrder + 1;
+    }
+  } else {
+    const temp = currentOrder;
+    currentOrder = siblingOrder;
+    siblingOrder = temp;
+  }
+
+  current.order_index = currentOrder;
+  sibling.order_index = siblingOrder;
+
+  const newCategories = [...localCategories.value];
+  newCategories[index] = sibling;
+  newCategories[target] = current;
+  localCategories.value = newCategories;
 }
 
 function moveWebsiteItem(index: number, direction: -1 | 1) {
@@ -310,16 +336,41 @@ function moveWebsiteItem(index: number, direction: -1 | 1) {
   const current = list[index];
   const sibling = list[target];
 
-  const temp = current.order_index;
-  current.order_index = sibling.order_index;
-  sibling.order_index = temp;
-
   const curIdxInAll = localWebsites.value.findIndex(w => w.id === current.id);
   const sibIdxInAll = localWebsites.value.findIndex(w => w.id === sibling.id);
 
-  if (curIdxInAll !== -1 && sibIdxInAll !== -1) {
-    localWebsites.value[curIdxInAll].order_index = current.order_index;
-    localWebsites.value[sibIdxInAll].order_index = sibling.order_index;
+  if (curIdxInAll === -1 || sibIdxInAll === -1) return;
+
+  let currentOrder = current.order_index;
+  let siblingOrder = sibling.order_index;
+
+  if (currentOrder === siblingOrder) {
+    if (direction === -1) {
+      currentOrder = Math.max(0, siblingOrder - 1);
+    } else {
+      currentOrder = siblingOrder + 1;
+    }
+  } else {
+    const temp = currentOrder;
+    currentOrder = siblingOrder;
+    siblingOrder = temp;
+  }
+
+  current.order_index = currentOrder;
+  sibling.order_index = siblingOrder;
+
+  // Crucial: Swap the actual elements in localWebsites.value so the rows visually move
+  const newWebsites = [...localWebsites.value];
+  newWebsites[curIdxInAll] = sibling;
+  newWebsites[sibIdxInAll] = current;
+  localWebsites.value = newWebsites;
+}
+
+function sortByInputOrder() {
+  if (activeTab.value === 'categories') {
+    localCategories.value = [...localCategories.value].sort((a, b) => a.order_index - b.order_index);
+  } else {
+    localWebsites.value = [...localWebsites.value].sort((a, b) => a.order_index - b.order_index);
   }
 }
 
