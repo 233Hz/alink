@@ -78,14 +78,14 @@
               </div>
 
               <!-- Order Index Input & Action Buttons -->
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-shrink-0">
                 <div class="flex items-center gap-1.5">
                   <label class="text-[11px] font-mono text-gray-500 uppercase">序号</label>
                   <input
                     v-model.number="cat.order_index"
                     type="number"
                     min="0"
-                    class="w-16 px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
+                    class="w-14 sm:w-16 px-1.5 sm:px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
                   />
                 </div>
 
@@ -164,14 +164,14 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-shrink-0">
                 <div class="flex items-center gap-1.5">
                   <label class="text-[11px] font-mono text-gray-500 uppercase">序号</label>
                   <input
                     v-model.number="site.order_index"
                     type="number"
                     min="0"
-                    class="w-16 px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
+                    class="w-14 sm:w-16 px-1.5 sm:px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
                   />
                 </div>
 
@@ -210,20 +210,20 @@
       </div>
 
       <!-- Footer Actions -->
-      <div class="px-6 py-4 border-t-2 border-black dark:border-white flex items-center justify-between">
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-black dark:border-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-black">
         <button
           type="button"
           @click="autoReindex"
-          class="text-xs font-mono underline hover:text-[#ff3366] transition-colors"
+          class="text-xs font-mono underline hover:text-[#ff3366] transition-colors text-left whitespace-nowrap self-start sm:self-center"
         >
           重置为连续序号 (0, 1, 2...)
         </button>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <button
             type="button"
             @click="close"
-            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none"
+            class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none whitespace-nowrap text-center"
           >
             关闭
           </button>
@@ -231,7 +231,7 @@
             type="button"
             @click="saveChanges"
             :disabled="saving"
-            class="border-2 border-black dark:border-white px-6 py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors rounded-none flex items-center gap-2"
+            class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors rounded-none flex items-center justify-center gap-2 whitespace-nowrap text-center"
           >
             <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
             <span>保存排序</span>

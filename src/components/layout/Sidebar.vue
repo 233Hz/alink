@@ -84,7 +84,7 @@
 
       <!-- User Categories -->
       <div
-        v-for="(cat, idx) in navStore.categoriesWithCounts"
+        v-for="cat in navStore.categoriesWithCounts"
         :key="cat.id"
         class="group/item relative"
       >
@@ -112,25 +112,9 @@
           <!-- Action Buttons on hover -->
           <div
             v-if="!isCollapsed"
-            class="hidden group-hover/item:flex items-center gap-1"
+            class="hidden group-hover/item:flex items-center gap-1.5"
             @click.stop
           >
-            <button
-              @click.stop="navStore.moveCategoryUp(cat.id)"
-              :disabled="idx === 0"
-              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
-              title="上移"
-            >
-              <ArrowUp class="w-3.5 h-3.5" />
-            </button>
-            <button
-              @click.stop="navStore.moveCategoryDown(cat.id)"
-              :disabled="idx === navStore.categoriesWithCounts.length - 1"
-              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
-              title="下移"
-            >
-              <ArrowDown class="w-3.5 h-3.5" />
-            </button>
             <button
               @click.stop="emit('edit-category', cat)"
               class="p-0.5 hover:text-[#ff3366]"
@@ -172,8 +156,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  ArrowUp,
-  ArrowDown,
   FolderTree,
   ChevronLeft,
   ChevronRight,

@@ -74,7 +74,7 @@
 
         <!-- Category Items -->
         <div
-          v-for="(cat, idx) in navStore.categoriesWithCounts"
+          v-for="cat in navStore.categoriesWithCounts"
           :key="cat.id"
           class="flex items-center justify-between border-2 border-transparent hover:border-black dark:hover:border-white p-1"
         >
@@ -94,22 +94,6 @@
 
           <!-- Mobile Action Menu buttons for category -->
           <div class="flex items-center gap-1 px-1">
-            <button
-              @click="navStore.moveCategoryUp(cat.id)"
-              :disabled="idx === 0"
-              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
-              title="上移"
-            >
-              <ArrowUp class="w-3.5 h-3.5" />
-            </button>
-            <button
-              @click="navStore.moveCategoryDown(cat.id)"
-              :disabled="idx === navStore.categoriesWithCounts.length - 1"
-              class="p-0.5 hover:text-[#ff3366] disabled:opacity-20"
-              title="下移"
-            >
-              <ArrowDown class="w-3.5 h-3.5" />
-            </button>
             <button
               @click="emit('edit-category', cat); emit('close');"
               class="p-0.5 hover:text-[#ff3366]"
@@ -158,8 +142,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  ArrowUp,
-  ArrowDown,
 } from '@lucide/vue';
 import { useNavStore } from '../../stores/nav';
 import type { Category } from '../../types';

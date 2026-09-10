@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { supabase } from '../lib/supabase';
-import { DEFAULT_SEED_DATA } from '../lib/defaultSeeds';
 import type { Category, Website, CategoryFormData, WebsiteFormData } from '../types';
 import { getFaviconUrl } from '../utils';
 import { useAuthStore } from './auth';
@@ -78,9 +77,7 @@ export const useNavStore = defineStore('nav', () => {
 
     sortedCategories.value.forEach(cat => {
       const sites = sortedWebsites.value.filter(w => w.category_id === cat.id);
-      if (sites.length > 0) {
-        groups.push({ category: cat, websites: sites });
-      }
+      groups.push({ category: cat, websites: sites });
     });
 
     // Add uncategorized if any exist
@@ -126,12 +123,6 @@ export const useNavStore = defineStore('nav', () => {
 
         if (webError) throw webError;
 
-        // If user has 0 categories, auto-seed default categories & websites
-        if ((!catData || catData.length === 0) && (!webData || webData.length === 0)) {
-          await seedInitialData(authStore.user.id);
-          return;
-        }
-
         categories.value = catData || [];
         websites.value = webData || [];
       } else {
@@ -150,6 +141,15 @@ export const useNavStore = defineStore('nav', () => {
     const localCat = localStorage.getItem('alink_guest_categories');
     const localWeb = localStorage.getItem('alink_guest_websites');
 
+    // Clean up any legacy built-in guest demo seed data
+    if (localCat && (localCat.includes('guest_cat_') || localCat.includes('常用搜索'))) {
+      localStorage.removeItem('alink_guest_categories');
+      localStorage.removeItem('alink_guest_websites');
+      categories.value = [];
+      websites.value = [];
+      return;
+    }
+
     if (localCat && localWeb) {
       try {
         categories.value = JSON.parse(localCat);
@@ -161,98 +161,21 @@ export const useNavStore = defineStore('nav', () => {
           }
           return w;
         });
-        saveGuestData();
         return;
-      } catch (e) {}
+      } catch (e) {
+        categories.value = [];
+        websites.value = [];
+      }
+    } else {
+      categories.value = [];
+      websites.value = [];
     }
-
-    // Seed local guest demo data
-    const newCats: Category[] = [];
-    const newWebs: Website[] = [];
-
-    DEFAULT_SEED_DATA.forEach((sc, cIdx) => {
-      const catId = 'guest_cat_' + cIdx;
-      newCats.push({
-        id: catId,
-        user_id: 'guest',
-        name: sc.name,
-        icon: sc.icon,
-        order_index: cIdx,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-
-      sc.websites.forEach((sw, wIdx) => {
-        newWebs.push({
-          id: 'guest_web_' + cIdx + '_' + wIdx,
-          user_id: 'guest',
-          category_id: catId,
-          title: sw.title,
-          url: sw.url,
-          description: sw.description,
-          icon_url: sw.icon_url,
-          order_index: wIdx,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      });
-    });
-
-    categories.value = newCats;
-    websites.value = newWebs;
-    saveGuestData();
   }
 
   function saveGuestData() {
     if (!authStore.user) {
       localStorage.setItem('alink_guest_categories', JSON.stringify(categories.value));
       localStorage.setItem('alink_guest_websites', JSON.stringify(websites.value));
-    }
-  }
-
-  async function seedInitialData(userId: string) {
-    try {
-      loading.value = true;
-      for (let cIdx = 0; cIdx < DEFAULT_SEED_DATA.length; cIdx++) {
-        const sc = DEFAULT_SEED_DATA[cIdx];
-        const { data: newCat, error: cErr } = await supabase
-          .from('categories')
-          .insert({
-            user_id: userId,
-            name: sc.name,
-            icon: sc.icon,
-            order_index: cIdx,
-          })
-          .select()
-          .single();
-
-        if (cErr) throw cErr;
-
-        if (newCat) {
-          const webInserts = sc.websites.map((sw, wIdx) => ({
-            user_id: userId,
-            category_id: newCat.id,
-            title: sw.title,
-            url: sw.url,
-            description: sw.description,
-            icon_url: sw.icon_url,
-            order_index: wIdx,
-          }));
-
-          const { error: wErr } = await supabase.from('websites').insert(webInserts);
-          if (wErr) throw wErr;
-        }
-      }
-
-      // Re-fetch after seeding
-      const { data: catData } = await supabase.from('categories').select('*').order('order_index');
-      const { data: webData } = await supabase.from('websites').select('*').order('order_index');
-      categories.value = catData || [];
-      websites.value = webData || [];
-    } catch (err: any) {
-      console.error('Error seeding initial data:', err);
-    } finally {
-      loading.value = false;
     }
   }
 

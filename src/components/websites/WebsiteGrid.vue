@@ -134,7 +134,10 @@
         </div>
 
         <!-- Cards in this category -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6">
+        <div
+          v-if="group.websites.length > 0"
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6"
+        >
           <WebsiteCard
             v-for="(site, idx) in group.websites"
             :key="site.id"
@@ -146,6 +149,19 @@
             @move-up="emit('move-up-website', $event)"
             @move-down="emit('move-down-website', $event)"
           />
+        </div>
+        <div
+          v-else
+          class="border-2 border-dashed border-black dark:border-white p-6 sm:p-8 text-center bg-white dark:bg-black rounded-none"
+        >
+          <p class="text-xs font-mono text-gray-500 mb-2">该分类下暂无网址</p>
+          <button
+            @click="emit('add-website', group.category && group.category.id !== 'UNCATEGORIZED' ? group.category.id : null)"
+            class="border-2 border-black dark:border-white px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors duration-200 rounded-none inline-flex items-center gap-1.5"
+          >
+            <Plus class="w-3.5 h-3.5" />
+            <span>添加第一个网址</span>
+          </button>
         </div>
       </div>
 
