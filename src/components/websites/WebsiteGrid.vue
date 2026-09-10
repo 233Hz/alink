@@ -44,7 +44,7 @@
       <!-- Websites Grid -->
       <div
         v-if="navStore.filteredWebsites.length > 0"
-        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4"
       >
         <WebsiteCard
           v-for="(site, idx) in navStore.filteredWebsites"
@@ -134,7 +134,7 @@
         </div>
 
         <!-- Cards in this category -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4">
           <WebsiteCard
             v-for="(site, idx) in group.websites"
             :key="site.id"

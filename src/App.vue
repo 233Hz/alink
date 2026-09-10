@@ -12,7 +12,7 @@
     <MobileCategoryNav />
 
     <!-- Main Container: Sidebar + Content -->
-    <div class="flex-1 flex max-w-7xl w-full mx-auto overflow-hidden">
+    <div class="flex-1 flex max-w-[1600px] w-full mx-auto overflow-hidden">
       <!-- Desktop Sidebar -->
       <div class="hidden md:block flex-shrink-0">
         <Sidebar

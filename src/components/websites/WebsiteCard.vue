@@ -2,14 +2,15 @@
   <div
     class="group relative flex flex-col justify-between p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-brand-500/40 dark:hover:border-brand-500/40 transition-all duration-200"
   >
-    <!-- Top Row: Icon, Title, Order Badge & Actions Menu -->
-    <div class="flex items-start justify-between gap-3">
+    <!-- Top Row: Icon, Title & Domain, Order Badge & Actions Menu -->
+    <div class="flex items-start justify-between gap-2.5">
+      <!-- Clickable Title & Icon -->
       <a
         :href="normalizedUrl"
         target="_blank"
         rel="noopener noreferrer"
         class="flex items-center gap-3 flex-1 min-w-0 group/link"
-        :title="website.url"
+        :title="website.title + ' - ' + website.url"
       >
         <!-- Favicon / Custom Icon / Fallback -->
         <div
@@ -31,15 +32,16 @@
           </span>
         </div>
 
+        <!-- Title & Hostname -->
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1">
             <h3
               class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400 transition-colors"
             >
               {{ website.title }}
             </h3>
             <ExternalLink
-              class="w-3.5 h-3.5 opacity-0 group-hover/link:opacity-100 text-slate-400 dark:text-slate-500 transition-opacity flex-shrink-0"
+              class="w-3 h-3 opacity-0 group-hover/link:opacity-100 text-slate-400 dark:text-slate-500 transition-opacity flex-shrink-0"
             />
           </div>
           <p class="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
@@ -48,11 +50,11 @@
         </div>
       </a>
 
-      <!-- Quick Action Menu Dropdown / Buttons -->
-      <div class="flex items-center gap-1">
+      <!-- Right Action Items: Order Badge + More Menu -->
+      <div class="flex items-center gap-1 flex-shrink-0 ml-1">
         <!-- Order badge -->
         <span
-          class="text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded"
+          class="text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded whitespace-nowrap"
           title="排序序号"
         >
           #{{ website.order_index }}
@@ -62,7 +64,7 @@
         <div class="relative" ref="menuRef">
           <button
             @click.stop="toggleMenu"
-            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
             title="更多操作"
           >
             <MoreVertical class="w-4 h-4" />
@@ -120,25 +122,24 @@
       </div>
     </div>
 
-    <!-- Description -->
+    <!-- Description (uniform 2-line height) -->
     <p
-      v-if="website.description"
-      class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed"
-      :title="website.description"
+      class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed h-9"
+      :title="website.description || ''"
     >
-      {{ website.description }}
+      {{ website.description || '暂无描述' }}
     </p>
 
-    <!-- Bottom Bar: Direct Visit Link -->
-    <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-      <span class="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[150px]">
-        {{ website.url }}
+    <!-- Bottom Bar: Hostname & Direct Visit Link -->
+    <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+      <span class="text-[11px] text-slate-400 dark:text-slate-500 truncate flex-1 min-w-0" :title="website.url">
+        {{ displayDomain }}
       </span>
       <a
         :href="normalizedUrl"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+        class="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 bg-brand-50/80 dark:bg-brand-950/40 hover:bg-brand-100 dark:hover:bg-brand-900/60 px-2 py-0.5 rounded-md transition-colors flex-shrink-0 whitespace-nowrap"
       >
         <span>直达</span>
         <ExternalLink class="w-3 h-3" />
@@ -175,15 +176,21 @@ const displayDomain = computed(() => extractDomain(props.website.url));
 
 const iconSrc = computed(() => {
   if (imgFailed.value) return '';
-  if (props.website.icon_url && props.website.icon_url.trim()) {
+  // If user provided a specific icon URL that does not end in /favicon.ico, use it
+  if (
+    props.website.icon_url &&
+    props.website.icon_url.trim() &&
+    !props.website.icon_url.endsWith('/favicon.ico')
+  ) {
     return props.website.icon_url.trim();
   }
+  // Otherwise use Google's high-resolution favicon service
   return getFaviconUrl(props.website.url);
 });
 
 const letterBadge = computed(() => {
   const t = props.website.title || displayDomain.value || 'W';
-  return t.charAt(0);
+  return t.charAt(0).toUpperCase();
 });
 
 function handleImgError() {

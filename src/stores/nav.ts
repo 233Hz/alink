@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_SEED_DATA } from '../lib/defaultSeeds';
 import type { Category, Website, CategoryFormData, WebsiteFormData } from '../types';
+import { getFaviconUrl } from '../utils';
 import { useAuthStore } from './auth';
 
 export const useNavStore = defineStore('nav', () => {
@@ -152,7 +153,15 @@ export const useNavStore = defineStore('nav', () => {
     if (localCat && localWeb) {
       try {
         categories.value = JSON.parse(localCat);
-        websites.value = JSON.parse(localWeb);
+        const parsedWeb: Website[] = JSON.parse(localWeb);
+        // Normalize any outdated /favicon.ico URLs to Google high-res favicon service
+        websites.value = parsedWeb.map((w: Website) => {
+          if (!w.icon_url || w.icon_url.endsWith('/favicon.ico')) {
+            return { ...w, icon_url: getFaviconUrl(w.url) };
+          }
+          return w;
+        });
+        saveGuestData();
         return;
       } catch (e) {}
     }
