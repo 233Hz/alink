@@ -198,7 +198,7 @@ import type { Website, WebsiteFormData } from '../../types';
 import {
   normalizeUrl,
   suggestTitleFromUrl,
-  crawlWebsiteTitle,
+  crawlWebsiteMetadata,
   getRandomGeneratedIconDataUrl,
 } from '../../utils';
 import WebsiteIcon from '../common/WebsiteIcon.vue';
@@ -259,8 +259,8 @@ async function handleUrlBlur() {
     form.url = normalizeUrl(form.url);
     if (!form.title.trim()) {
       form.title = suggestTitleFromUrl(form.url);
-      await fetchAndApplyTitle(false);
     }
+    await fetchAndApplyMetadata(false);
   }
 }
 
@@ -270,17 +270,19 @@ async function autoFillFromUrl(force = false) {
   if (!form.title.trim()) {
     form.title = suggestTitleFromUrl(form.url);
   }
-  form.icon_url = '';
-  await fetchAndApplyTitle(force);
+  await fetchAndApplyMetadata(force);
 }
 
-async function fetchAndApplyTitle(force = false) {
+async function fetchAndApplyMetadata(force = false) {
   if (!form.url.trim()) return;
   try {
     fetchingTitle.value = true;
-    const crawled = await crawlWebsiteTitle(form.url);
-    if (crawled && (force || !form.title.trim() || form.title === suggestTitleFromUrl(form.url))) {
-      form.title = crawled;
+    const meta = await crawlWebsiteMetadata(form.url);
+    if (meta.title && (force || !form.title.trim() || form.title === suggestTitleFromUrl(form.url))) {
+      form.title = meta.title;
+    }
+    if (meta.iconUrl && (force || !form.icon_url.trim())) {
+      form.icon_url = meta.iconUrl;
     }
   } catch {
     if (!form.title.trim()) {

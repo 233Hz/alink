@@ -36,23 +36,50 @@ export function extractDomain(rawUrl: string): string {
   }
 }
 
+const MULTI_PART_TLDS = new Set([
+  'com.cn', 'net.cn', 'org.cn', 'gov.cn', 'edu.cn',
+  'co.uk', 'org.uk', 'me.uk',
+  'co.jp', 'ne.jp',
+  'com.hk', 'org.hk', 'edu.hk',
+  'com.tw', 'org.tw',
+  'com.au', 'net.au',
+]);
+
+/**
+ * 提取主域名 / 根域名（Apex Domain）
+ * 例如：chat.deepseek.com -> deepseek.com, m.bilibili.com -> bilibili.com
+ */
+export function extractApexDomain(hostname: string): string {
+  if (!hostname) return '';
+  const clean = hostname.replace(/^www\./, '').toLowerCase().trim();
+  const parts = clean.split('.');
+  if (parts.length <= 2) return clean;
+
+  const lastTwo = parts.slice(-2).join('.');
+  if (MULTI_PART_TLDS.has(lastTwo)) {
+    if (parts.length >= 3) {
+      return parts.slice(-3).join('.');
+    }
+    return clean;
+  }
+
+  return parts.slice(-2).join('.');
+}
+
 export function getFaviconUrl(rawUrl: string): string {
   const domain = extractDomain(rawUrl);
   if (!domain) return '';
-  // Favicon.im high-resolution favicon service
-  return `https://favicon.im/${encodeURIComponent(domain)}?larger=true`;
+  // Cloudflare 全球 CDN，不假报 200，覆盖率高
+  return `https://icon.horse/icon/${encodeURIComponent(domain)}`;
 }
 
 /**
  * 获取多级兜底 Favicon 候选地址列表
- * 优先级：
- * 0. 自定义图标链接（若有效且非默认兜底）
- * 1. Favicon.im (全球 CDN 加速，国内免翻墙，支持高清)
- * 2. Cravatar 国内源 (免翻墙，专为国内导航优化)
- * 3. Icon Horse (Cloudflare 全球 CDN)
- * 4. DuckDuckGo (国外公共图标源)
- * 5. 目标网站根目录 /favicon.ico 直链
- * 6. Google S2 高清服务 (海外/代理环境)
+ * 关键策略：
+ * 1. 子域名（Subdomain）优先，失败后自动穿透尝试根域名（Apex Domain）
+ * 2. 优先使用真实返回 404 的高质量服务（Icon Horse / DuckDuckGo），避免假 200 截断兜底
+ * 3. 站点根目录 /favicon.ico 直链
+ * 4. Google S2 备用
  */
 export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | null): string[] {
   const candidates: string[] = [];
@@ -71,25 +98,27 @@ export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | nu
     return candidates;
   }
 
-  const encodedDomain = encodeURIComponent(domain);
+  const apex = extractApexDomain(domain);
+  const domains = [domain];
+  if (apex && apex !== domain) {
+    domains.push(apex);
+  }
 
-  // Tier 1: Favicon.im 高清源 (全球 CDN，国内直连支持，高清图标)
-  candidates.push(`https://favicon.im/${encodedDomain}?larger=true`);
+  // 对子域名与主域名进行多级真实探针候选
+  for (const d of domains) {
+    const enc = encodeURIComponent(d);
+    // 1. Icon Horse (Cloudflare 全球 CDN，真实 404，高清 PNG/SVG)
+    candidates.push(`https://icon.horse/icon/${enc}`);
+    // 2. DuckDuckGo (国外/大厂站点覆盖极广，返回标准 404)
+    candidates.push(`https://icons.duckduckgo.com/ip3/${enc}.ico`);
+    // 3. Cravatar (国内源快速缓存)
+    candidates.push(`https://cn.cravatar.com/favicon/api/index.php?url=${enc}`);
+    // 4. 源站根目录直链
+    candidates.push(`https://${d}/favicon.ico`);
+  }
 
-  // Tier 2: Cravatar 国内源 (免翻墙，延迟低)
-  candidates.push(`https://cn.cravatar.com/favicon/api/index.php?url=${encodedDomain}`);
-
-  // Tier 3: Icon Horse 全球 CDN 加速
-  candidates.push(`https://icon.horse/icon/${encodedDomain}`);
-
-  // Tier 4: DuckDuckGo 公共源
-  candidates.push(`https://icons.duckduckgo.com/ip3/${encodedDomain}.ico`);
-
-  // Tier 5: 源站根目录直链
-  candidates.push(`https://${domain}/favicon.ico`);
-
-  // Tier 6: Google S2 128px (海外/代理环境备用)
-  candidates.push(`https://www.google.com/s2/favicons?domain=${encodedDomain}&sz=128`);
+  // 备选: Google S2 (海外/开启代理环境备用)
+  candidates.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
 
   return Array.from(new Set(candidates));
 }
@@ -172,34 +201,50 @@ function cleanHtmlTitle(title: string): string {
   return t.replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Crawls and extracts real website <title> using resilient services with fast local fallback.
- */
-export async function crawlWebsiteTitle(rawUrl: string): Promise<string> {
-  const url = normalizeUrl(rawUrl);
-  if (!url) return '';
+export interface WebsiteMetadata {
+  title?: string;
+  iconUrl?: string;
+}
 
-  // 1. Try Microlink (Fast, structured OpenGraph / HTML title)
+/**
+ * 爬取网页标题与官方高清原生 Favicon 图标
+ */
+export async function crawlWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
+  const url = normalizeUrl(rawUrl);
+  if (!url) return {};
+
+  const result: WebsiteMetadata = {};
+
+  // 1. 优先尝试 Microlink：结构化提取标题与官方高分 Logo / Icon
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, {
       signal: controller.signal,
     });
     clearTimeout(timer);
     if (res.ok) {
       const json = await res.json();
-      if (json.data && json.data.title && typeof json.data.title === 'string') {
-        const cleaned = cleanHtmlTitle(json.data.title);
-        if (cleaned) return cleaned;
+      if (json.data) {
+        if (json.data.title && typeof json.data.title === 'string') {
+          result.title = cleanHtmlTitle(json.data.title);
+        }
+        const officialIcon = json.data.logo?.url || json.data.icon?.url;
+        if (officialIcon && typeof officialIcon === 'string') {
+          result.iconUrl = officialIcon;
+        }
       }
     }
   } catch {}
 
-  // 2. Try Allorigins fallback (Fetches raw HTML and extracts <title>)
+  if (result.title && result.iconUrl) {
+    return result;
+  }
+
+  // 2. 备用尝试 Allorigins 跨域抓取 HTML 源码，解析 <title> 与 <link rel="icon">
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
       signal: controller.signal,
     });
@@ -207,17 +252,43 @@ export async function crawlWebsiteTitle(rawUrl: string): Promise<string> {
     if (res.ok) {
       const data = await res.json();
       if (data && data.contents && typeof data.contents === 'string') {
-        const match = data.contents.match(/<title[^>]*>([^<]+)<\/title>/i);
-        if (match && match[1]) {
-          const cleaned = cleanHtmlTitle(match[1]);
-          if (cleaned) return cleaned;
+        const html = data.contents;
+        if (!result.title) {
+          const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          if (match && match[1]) {
+            result.title = cleanHtmlTitle(match[1]);
+          }
+        }
+        if (!result.iconUrl) {
+          const iconMatch =
+            html.match(/<link[^>]+rel=["'](?:shortcut )?(?:icon|apple-touch-icon)["'][^>]+href=["']([^"']+)["']/i) ||
+            html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?(?:icon|apple-touch-icon)["']/i);
+          if (iconMatch && iconMatch[1]) {
+            try {
+              result.iconUrl = new URL(iconMatch[1], url).href;
+            } catch {
+              result.iconUrl = iconMatch[1];
+            }
+          }
         }
       }
     }
   } catch {}
 
-  // 3. Fallback to suggestTitleFromUrl
-  return suggestTitleFromUrl(url);
+  // 3. 兜底根据域名生成建议标题
+  if (!result.title) {
+    result.title = suggestTitleFromUrl(url);
+  }
+
+  return result;
+}
+
+/**
+ * 保持向后兼容：抓取网站真实标题
+ */
+export async function crawlWebsiteTitle(rawUrl: string): Promise<string> {
+  const meta = await crawlWebsiteMetadata(rawUrl);
+  return meta.title || suggestTitleFromUrl(rawUrl);
 }
 
 export * from './iconGenerator';
