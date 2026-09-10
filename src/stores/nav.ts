@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { supabase } from '../lib/supabase';
 import type { Category, Website, CategoryFormData, WebsiteFormData } from '../types';
-import { getFaviconUrl } from '../utils';
 import { useAuthStore } from './auth';
 
 export const useNavStore = defineStore('nav', () => {
@@ -113,12 +112,16 @@ export const useNavStore = defineStore('nav', () => {
     throw err;
   }
 
-  // Fetch all data for current user or load guest demo data
+  // Fetch all data for current user
   async function fetchData() {
     loading.value = true;
     error.value = null;
 
     try {
+      // Clean up legacy guest localStorage if present
+      localStorage.removeItem('alink_guest_categories');
+      localStorage.removeItem('alink_guest_websites');
+
       if (authStore.user && !authStore.session) {
         await authStore.ensureSession();
       }
@@ -143,8 +146,8 @@ export const useNavStore = defineStore('nav', () => {
         categories.value = catData || [];
         websites.value = webData || [];
       } else {
-        // Guest mode fallback from localStorage or memory
-        loadGuestData();
+        categories.value = [];
+        websites.value = [];
       }
     } catch (err: any) {
       console.error('Error fetching navigation data:', err);
@@ -162,89 +165,35 @@ export const useNavStore = defineStore('nav', () => {
     }
   }
 
-  function loadGuestData() {
-    const localCat = localStorage.getItem('alink_guest_categories');
-    const localWeb = localStorage.getItem('alink_guest_websites');
-
-    // Clean up any legacy built-in guest demo seed data
-    if (localCat && (localCat.includes('guest_cat_') || localCat.includes('常用搜索'))) {
-      localStorage.removeItem('alink_guest_categories');
-      localStorage.removeItem('alink_guest_websites');
-      categories.value = [];
-      websites.value = [];
-      return;
-    }
-
-    if (localCat && localWeb) {
-      try {
-        categories.value = JSON.parse(localCat);
-        const parsedWeb: Website[] = JSON.parse(localWeb);
-        // Normalize any outdated /favicon.ico URLs to Google high-res favicon service
-        websites.value = parsedWeb.map((w: Website) => {
-          if (!w.icon_url || w.icon_url.endsWith('/favicon.ico')) {
-            return { ...w, icon_url: getFaviconUrl(w.url) };
-          }
-          return w;
-        });
-        return;
-      } catch (e) {
-        categories.value = [];
-        websites.value = [];
-      }
-    } else {
-      categories.value = [];
-      websites.value = [];
-    }
-  }
-
-  function saveGuestData() {
-    if (!authStore.isAuthenticated) {
-      localStorage.setItem('alink_guest_categories', JSON.stringify(categories.value));
-      localStorage.setItem('alink_guest_websites', JSON.stringify(websites.value));
-    }
-  }
-
   // --- Category Actions ---
   async function createCategory(data: CategoryFormData) {
     if (authStore.user && !authStore.session) {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      const maxOrder = categories.value.reduce((max, c) => Math.max(max, c.order_index), -1);
-      const order_index = data.order_index ?? (maxOrder + 1);
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
+    }
 
-      const { data: newCat, error: err } = await supabase
-        .from('categories')
-        .insert({
-          user_id: authStore.user.id,
-          name: data.name.trim(),
-          icon: data.icon || 'Folder',
-          order_index,
-        })
-        .select()
-        .single();
+    const maxOrder = categories.value.reduce((max, c) => Math.max(max, c.order_index), -1);
+    const order_index = data.order_index ?? (maxOrder + 1);
 
-      if (err) handleDbError(err);
-      if (newCat) {
-        categories.value.push(newCat);
-      }
-      return newCat;
-    } else {
-      const maxOrder = categories.value.reduce((max, c) => Math.max(max, c.order_index), -1);
-      const newCat: Category = {
-        id: 'guest_cat_' + Date.now(),
-        user_id: 'guest',
+    const { data: newCat, error: err } = await supabase
+      .from('categories')
+      .insert({
+        user_id: authStore.user.id,
         name: data.name.trim(),
         icon: data.icon || 'Folder',
-        order_index: data.order_index ?? (maxOrder + 1),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+        order_index,
+      })
+      .select()
+      .single();
+
+    if (err) handleDbError(err);
+    if (newCat) {
       categories.value.push(newCat);
-      saveGuestData();
-      return newCat;
     }
+    return newCat;
   }
 
   async function updateCategory(id: string, data: Partial<CategoryFormData>) {
@@ -252,36 +201,28 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      const updatePayload: any = {};
-      if (data.name !== undefined) updatePayload.name = data.name.trim();
-      if (data.icon !== undefined) updatePayload.icon = data.icon;
-      if (data.order_index !== undefined) updatePayload.order_index = data.order_index;
-
-      const { data: updated, error: err } = await supabase
-        .from('categories')
-        .update(updatePayload)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (err) handleDbError(err);
-      const idx = categories.value.findIndex(c => c.id === id);
-      if (idx !== -1 && updated) {
-        categories.value[idx] = updated;
-      }
-      return updated;
-    } else {
-      const idx = categories.value.findIndex(c => c.id === id);
-      if (idx !== -1) {
-        categories.value[idx] = {
-          ...categories.value[idx],
-          ...data,
-          updated_at: new Date().toISOString(),
-        };
-        saveGuestData();
-      }
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
     }
+
+    const updatePayload: any = {};
+    if (data.name !== undefined) updatePayload.name = data.name.trim();
+    if (data.icon !== undefined) updatePayload.icon = data.icon;
+    if (data.order_index !== undefined) updatePayload.order_index = data.order_index;
+
+    const { data: updated, error: err } = await supabase
+      .from('categories')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (err) handleDbError(err);
+    const idx = categories.value.findIndex(c => c.id === id);
+    if (idx !== -1 && updated) {
+      categories.value[idx] = updated;
+    }
+    return updated;
   }
 
   async function deleteCategory(id: string, deleteWebsites: boolean) {
@@ -289,46 +230,33 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      if (!deleteWebsites) {
-        // Move websites to uncategorized (category_id = null)
-        const { error: webErr } = await supabase.from('websites').update({ category_id: null }).eq('category_id', id);
-        if (webErr) handleDbError(webErr);
-        websites.value.forEach(w => {
-          if (w.category_id === id) {
-            w.category_id = null;
-          }
-        });
-      } else {
-        // Cascade delete websites
-        const { error: webErr } = await supabase.from('websites').delete().eq('category_id', id);
-        if (webErr) handleDbError(webErr);
-        websites.value = websites.value.filter(w => w.category_id !== id);
-      }
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
+    }
 
-      // Delete the category itself
-      const { error: err } = await supabase.from('categories').delete().eq('id', id);
-      if (err) handleDbError(err);
-
-      categories.value = categories.value.filter(c => c.id !== id);
-      if (activeCategoryId.value === id) {
-        activeCategoryId.value = 'ALL';
-      }
+    if (!deleteWebsites) {
+      // Move websites to uncategorized (category_id = null)
+      const { error: webErr } = await supabase.from('websites').update({ category_id: null }).eq('category_id', id);
+      if (webErr) handleDbError(webErr);
+      websites.value.forEach(w => {
+        if (w.category_id === id) {
+          w.category_id = null;
+        }
+      });
     } else {
-      if (!deleteWebsites) {
-        websites.value.forEach(w => {
-          if (w.category_id === id) {
-            w.category_id = null;
-          }
-        });
-      } else {
-        websites.value = websites.value.filter(w => w.category_id !== id);
-      }
-      categories.value = categories.value.filter(c => c.id !== id);
-      if (activeCategoryId.value === id) {
-        activeCategoryId.value = 'ALL';
-      }
-      saveGuestData();
+      // Cascade delete websites
+      const { error: webErr } = await supabase.from('websites').delete().eq('category_id', id);
+      if (webErr) handleDbError(webErr);
+      websites.value = websites.value.filter(w => w.category_id !== id);
+    }
+
+    // Delete the category itself
+    const { error: err } = await supabase.from('categories').delete().eq('id', id);
+    if (err) handleDbError(err);
+
+    categories.value = categories.value.filter(c => c.id !== id);
+    if (activeCategoryId.value === id) {
+      activeCategoryId.value = 'ALL';
     }
   }
 
@@ -377,13 +305,13 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      for (const c of catsToUpdate) {
-        const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
-        if (err) console.error('Error updating category order:', err);
-      }
-    } else {
-      saveGuestData();
+    if (!authStore.isAuthenticated || !authStore.user) {
+      return;
+    }
+
+    for (const c of catsToUpdate) {
+      const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
+      if (err) console.error('Error updating category order:', err);
     }
   }
 
@@ -410,43 +338,29 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      const { data: newWeb, error: err } = await supabase
-        .from('websites')
-        .insert({
-          user_id: authStore.user.id,
-          category_id: targetCategoryId,
-          title: data.title.trim(),
-          url: data.url.trim(),
-          description: data.description.trim(),
-          icon_url: data.icon_url.trim(),
-          order_index,
-        })
-        .select()
-        .single();
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
+    }
 
-      if (err) handleDbError(err);
-      if (newWeb) {
-        websites.value.push(newWeb);
-      }
-      return newWeb;
-    } else {
-      const newWeb: Website = {
-        id: 'guest_web_' + Date.now(),
-        user_id: 'guest',
+    const { data: newWeb, error: err } = await supabase
+      .from('websites')
+      .insert({
+        user_id: authStore.user.id,
         category_id: targetCategoryId,
         title: data.title.trim(),
         url: data.url.trim(),
         description: data.description.trim(),
         icon_url: data.icon_url.trim(),
         order_index,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      })
+      .select()
+      .single();
+
+    if (err) handleDbError(err);
+    if (newWeb) {
       websites.value.push(newWeb);
-      saveGuestData();
-      return newWeb;
     }
+    return newWeb;
   }
 
   async function updateWebsite(id: string, data: Partial<WebsiteFormData>) {
@@ -454,40 +368,31 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      const updatePayload: any = {};
-      if (data.title !== undefined) updatePayload.title = data.title.trim();
-      if (data.url !== undefined) updatePayload.url = data.url.trim();
-      if (data.description !== undefined) updatePayload.description = data.description.trim();
-      if (data.icon_url !== undefined) updatePayload.icon_url = data.icon_url.trim();
-      if (data.category_id !== undefined) updatePayload.category_id = data.category_id || null;
-      if (data.order_index !== undefined) updatePayload.order_index = data.order_index;
-
-      const { data: updated, error: err } = await supabase
-        .from('websites')
-        .update(updatePayload)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (err) handleDbError(err);
-      const idx = websites.value.findIndex(w => w.id === id);
-      if (idx !== -1 && updated) {
-        websites.value[idx] = updated;
-      }
-      return updated;
-    } else {
-      const idx = websites.value.findIndex(w => w.id === id);
-      if (idx !== -1) {
-        websites.value[idx] = {
-          ...websites.value[idx],
-          ...data,
-          category_id: data.category_id !== undefined ? (data.category_id || null) : websites.value[idx].category_id,
-          updated_at: new Date().toISOString(),
-        };
-        saveGuestData();
-      }
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
     }
+
+    const updatePayload: any = {};
+    if (data.title !== undefined) updatePayload.title = data.title.trim();
+    if (data.url !== undefined) updatePayload.url = data.url.trim();
+    if (data.description !== undefined) updatePayload.description = data.description.trim();
+    if (data.icon_url !== undefined) updatePayload.icon_url = data.icon_url.trim();
+    if (data.category_id !== undefined) updatePayload.category_id = data.category_id || null;
+    if (data.order_index !== undefined) updatePayload.order_index = data.order_index;
+
+    const { data: updated, error: err } = await supabase
+      .from('websites')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (err) handleDbError(err);
+    const idx = websites.value.findIndex(w => w.id === id);
+    if (idx !== -1 && updated) {
+      websites.value[idx] = updated;
+    }
+    return updated;
   }
 
   async function deleteWebsite(id: string) {
@@ -495,14 +400,13 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      const { error: err } = await supabase.from('websites').delete().eq('id', id);
-      if (err) handleDbError(err);
-      websites.value = websites.value.filter(w => w.id !== id);
-    } else {
-      websites.value = websites.value.filter(w => w.id !== id);
-      saveGuestData();
+    if (!authStore.isAuthenticated || !authStore.user) {
+      throw new Error('请先登录后再进行此操作');
     }
+
+    const { error: err } = await supabase.from('websites').delete().eq('id', id);
+    if (err) handleDbError(err);
+    websites.value = websites.value.filter(w => w.id !== id);
   }
 
   async function moveWebsiteUp(id: string) {
@@ -563,13 +467,13 @@ export const useNavStore = defineStore('nav', () => {
       await authStore.ensureSession();
     }
 
-    if (authStore.isAuthenticated && authStore.user) {
-      for (const w of sitesToUpdate) {
-        const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
-        if (err) console.error('Error updating website order:', err);
-      }
-    } else {
-      saveGuestData();
+    if (!authStore.isAuthenticated || !authStore.user) {
+      return;
+    }
+
+    for (const w of sitesToUpdate) {
+      const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
+      if (err) console.error('Error updating website order:', err);
     }
   }
 

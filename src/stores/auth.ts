@@ -7,10 +7,9 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const session = ref<Session | null>(null);
   const loading = ref(true);
-  const isGuest = ref(false);
 
   const isAuthenticated = computed(() => !!user.value && !!session.value);
-  const userEmail = computed(() => (isAuthenticated.value ? user.value?.email : (isGuest.value ? '访客体验模式' : '未登录')));
+  const userEmail = computed(() => (isAuthenticated.value ? user.value?.email : '未登录'));
 
   async function initAuth() {
     try {
@@ -26,9 +25,6 @@ export const useAuthStore = defineStore('auth', () => {
       supabase.auth.onAuthStateChange((_event, currentSession) => {
         session.value = currentSession;
         user.value = currentSession?.user || null;
-        if (currentSession?.user) {
-          isGuest.value = false;
-        }
       });
     } catch (err) {
       console.error('Auth initialization error:', err);
@@ -64,7 +60,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (error) throw error;
     user.value = data.user;
     session.value = data.session;
-    isGuest.value = false;
     return data;
   }
 
@@ -83,7 +78,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     user.value = data.user;
     session.value = data.session;
-    isGuest.value = false;
     return data;
   }
 
@@ -91,18 +85,12 @@ export const useAuthStore = defineStore('auth', () => {
     await supabase.auth.signOut();
     user.value = null;
     session.value = null;
-    isGuest.value = false;
-  }
-
-  function setGuestMode(val = true) {
-    isGuest.value = val;
   }
 
   return {
     user,
     session,
     loading,
-    isGuest,
     isAuthenticated,
     userEmail,
     initAuth,
@@ -110,6 +98,5 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signUp,
     signOut,
-    setGuestMode,
   };
 });

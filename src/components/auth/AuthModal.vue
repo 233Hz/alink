@@ -99,18 +99,6 @@
             {{ isSignUp ? '去登录' : '立即注册' }}
           </button>
         </div>
-
-        <!-- Guest Experience Button -->
-        <div class="pt-4 border-t-2 border-black dark:border-white">
-          <button
-            type="button"
-            @click="handleGuestExperience"
-            class="w-full py-2.5 text-xs font-bold uppercase tracking-wider border-2 border-black dark:border-white bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none flex items-center justify-center gap-2"
-          >
-            <Sparkles class="w-3.5 h-3.5 text-[#ff3366]" />
-            <span>免登录访客体验模式</span>
-          </button>
-        </div>
       </form>
     </div>
   </div>
@@ -118,7 +106,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles, X } from '@lucide/vue';
+import { Mail, Lock, Eye, EyeOff, Loader2, X } from '@lucide/vue';
 import { useAuthStore } from '../../stores/auth';
 import { useNavStore } from '../../stores/nav';
 
@@ -188,12 +176,6 @@ async function handleSubmit() {
   } finally {
     submitting.value = false;
   }
-}
-
-async function handleGuestExperience() {
-  authStore.setGuestMode(true);
-  await navStore.fetchData();
-  close();
 }
 
 function close() {

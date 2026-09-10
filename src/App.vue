@@ -4,7 +4,7 @@
     <Navbar
       @toggle-mobile-sidebar="isMobileDrawerOpen = true"
       @open-add-website="openAddWebsiteModal(null)"
-      @open-reorder="isReorderModalOpen = true"
+      @open-reorder="handleOpenReorder"
       @open-auth="isAuthModalOpen = true"
     />
 
@@ -138,45 +138,66 @@ const defaultWebsiteCategoryId = ref<string | null>(null);
 const categoryToEdit = ref<Category | null>(null);
 const categoryToDelete = ref<Category | null>(null);
 
+function checkAuth(): boolean {
+  if (!authStore.isAuthenticated) {
+    isAuthModalOpen.value = true;
+    return false;
+  }
+  return true;
+}
+
+function handleOpenReorder() {
+  if (!checkAuth()) return;
+  isReorderModalOpen.value = true;
+}
+
 function openAddWebsiteModal(categoryId?: string | null) {
+  if (!checkAuth()) return;
   websiteToEdit.value = null;
   defaultWebsiteCategoryId.value = categoryId ?? null;
   isWebsiteModalOpen.value = true;
 }
 
 function openEditWebsiteModal(site: Website) {
+  if (!checkAuth()) return;
   websiteToEdit.value = site;
   defaultWebsiteCategoryId.value = site.category_id;
   isWebsiteModalOpen.value = true;
 }
 
 async function openDeleteWebsiteModal(site: Website) {
+  if (!checkAuth()) return;
   if (confirm(`确认要删除网址 “${site.title}” 吗？`)) {
     await navStore.deleteWebsite(site.id);
   }
 }
 
 async function handleMoveWebsiteUp(site: Website) {
+  if (!checkAuth()) return;
   await navStore.moveWebsiteUp(site.id);
 }
 
 async function handleMoveWebsiteDown(site: Website) {
+  if (!checkAuth()) return;
   await navStore.moveWebsiteDown(site.id);
 }
 
 function handleWebsiteSaved() {}
 
 function openAddCategoryModal() {
+  if (!checkAuth()) return;
   categoryToEdit.value = null;
   isCategoryModalOpen.value = true;
 }
 
 function openEditCategoryModal(cat: Category) {
+  if (!checkAuth()) return;
   categoryToEdit.value = cat;
   isCategoryModalOpen.value = true;
 }
 
 function openDeleteCategoryDialog(cat: Category) {
+  if (!checkAuth()) return;
   categoryToDelete.value = cat;
   isDeleteCategoryOpen.value = true;
 }
@@ -188,5 +209,8 @@ onMounted(async () => {
   themeStore.initTheme();
   await authStore.initAuth();
   await navStore.fetchData();
+  if (!authStore.isAuthenticated) {
+    isAuthModalOpen.value = true;
+  }
 });
 </script>

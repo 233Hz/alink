@@ -118,10 +118,10 @@
           v-else
           @click="emit('open-auth')"
           class="p-2 sm:px-3 sm:py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none transition-colors duration-200 inline-flex items-center justify-center gap-1.5 whitespace-nowrap flex-shrink-0"
-          :title="authStore.isGuest ? '登录账号' : '登录 / 注册'"
+          title="登录 / 注册"
         >
           <User class="w-4 h-4 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-          <span class="hidden sm:inline">{{ authStore.isGuest ? '登录账号' : '登录 / 注册' }}</span>
+          <span class="hidden sm:inline">登录 / 注册</span>
         </button>
       </div>
     </div>
