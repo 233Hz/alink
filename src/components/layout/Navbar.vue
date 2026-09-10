@@ -2,9 +2,9 @@
   <header
     class="sticky top-0 z-40 w-full bg-white dark:bg-black text-black dark:text-white border-b-2 border-black dark:border-white transition-colors flex-shrink-0"
   >
-    <div class="w-full px-4 md:px-8 h-16 flex items-center justify-between gap-4">
-      <!-- Left: Mobile Menu Toggle & Brand Logo -->
-      <div class="flex items-center gap-4">
+    <div class="w-full px-2.5 sm:px-4 md:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+      <!-- Left: Mobile Menu Toggle & Brand Logo (Logo hidden on mobile) -->
+      <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         <button
           type="button"
           @click="emit('toggle-mobile-sidebar')"
@@ -14,10 +14,11 @@
           <Menu class="w-4 h-4" />
         </button>
 
+        <!-- Brand Logo (Desktop only) -->
         <a
           href="#"
           @click.prevent="navStore.activeCategoryId = 'ALL'"
-          class="flex items-center gap-3 group"
+          class="hidden md:flex items-center gap-3 group"
         >
           <div
             class="w-9 h-9 border-2 border-black dark:border-white bg-black text-white dark:bg-white dark:text-black flex items-center justify-center font-black text-base rounded-none"
@@ -31,7 +32,7 @@
       </div>
 
       <!-- Center: Web Search Bar with Engine Selector -->
-      <div class="flex-1 max-w-xl mx-2 sm:mx-4">
+      <div class="flex-1 min-w-0 max-w-xl mx-1 sm:mx-4">
         <form
           @submit.prevent="handleSearch"
           class="relative flex items-center border-2 border-black dark:border-white bg-white dark:bg-black rounded-none shadow-none"
@@ -90,7 +91,7 @@
           <!-- Search Submit Button -->
           <button
             type="submit"
-            class="h-8 sm:h-9 px-3 bg-black text-white dark:bg-white dark:text-black hover:bg-[#ff3366] dark:hover:bg-[#ff3366] dark:hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border-l-2 border-black dark:border-white rounded-none flex-shrink-0"
+            class="h-8 sm:h-9 px-2.5 sm:px-3 bg-black text-white dark:bg-white dark:text-black hover:bg-[#ff3366] dark:hover:bg-[#ff3366] dark:hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border-l-2 border-black dark:border-white rounded-none flex-shrink-0"
             title="点击搜索或按回车"
           >
             <Search class="w-3.5 h-3.5" />
@@ -99,8 +100,8 @@
         </form>
       </div>
 
-      <!-- Right: Action Buttons & User Profile -->
-      <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Right: Action Buttons & User Profile (Desktop only, mobile moved to Drawer) -->
+      <div class="hidden md:flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <!-- Reorder Manager Button -->
         <button
           @click="emit('open-reorder')"

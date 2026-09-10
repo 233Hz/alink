@@ -66,6 +66,9 @@
       @add-website="openAddWebsiteModal(null)"
       @edit-category="openEditCategoryModal"
       @delete-category="openDeleteCategoryDialog"
+      @open-reorder="handleOpenReorder"
+      @open-auth="isAuthModalOpen = true"
+      @open-change-password="isChangePasswordModalOpen = true"
     />
 
     <!-- Modals -->
