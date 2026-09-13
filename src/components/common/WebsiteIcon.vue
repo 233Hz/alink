@@ -3,8 +3,14 @@
     <!-- 兜底生成图标常驻底层：候选请求挂起时底部仍有图案，不会出现空白格子 -->
     <GeneratedIcon :seed="effectiveSeed" :custom-class="iconClass" />
 
+    <!--
+      真实图标必须是不透明的（bg-white）：生成图标是白底彩色像素块，
+      而很多 favicon 是透明底，不铺底就会透出下层的默认图案。
+      未加载完成时保持 opacity-0，此时背景与内容都不可见，兜底图标正常展示。
+    -->
     <img
       v-if="currentSrc"
+      ref="imgRef"
       :src="currentSrc"
       :alt="title || 'icon'"
       :loading="loading"
@@ -12,7 +18,7 @@
       referrerpolicy="no-referrer"
       :class="[
         imgClass,
-        'absolute inset-0 m-auto transition-opacity duration-200',
+        'absolute inset-0 m-auto bg-white transition-opacity duration-200',
         isLoaded ? 'opacity-100' : 'opacity-0',
       ]"
       @load="handleImgLoad"
@@ -53,6 +59,7 @@ const props = withDefaults(
 );
 
 const rootRef = ref<HTMLElement | null>(null);
+const imgRef = ref<HTMLImageElement | null>(null);
 
 const candidateIndex = ref(0);
 const hasFailedAll = ref(false);
@@ -88,6 +95,27 @@ function clearTimer() {
 }
 
 /**
+ * 是否为「占位垃圾图」。
+ *
+ * 注意不能简单用 naturalWidth === 0 判断失败：没有 width/height 属性、
+ * 只有 viewBox 的 SVG 加载成功时 naturalWidth 同样是 0，那样会把大量
+ * 正常的 SVG favicon 误判为失败，最终全部退化成默认图标。
+ * 这里只把典型的 1x1 占位图视为垃圾。
+ */
+function isJunkImage(img: HTMLImageElement): boolean {
+  return img.naturalWidth === 1 && img.naturalHeight === 1;
+}
+
+function markLoaded(img: HTMLImageElement) {
+  isLoaded.value = true;
+  clearTimer();
+  // 1x1 之类的占位图不写入记忆，避免被其他卡片复用
+  if (img.naturalWidth > 1 && domain.value) {
+    rememberFaviconResolution(domain.value, img.currentSrc || img.src);
+  }
+}
+
+/**
  * 仅在「已进入视口 + 尚未成功 + 仍有候选」时计时。
  * 候选迟迟不返回（受限网络下的静默丢包）就主动降级到下一个，
  * 这是避免整条兜底链路被永久卡死的关键。
@@ -101,7 +129,15 @@ function syncTimer() {
 
   const epoch = token;
   timer = setTimeout(() => {
-    if (epoch === token) advance();
+    if (epoch !== token) return;
+
+    // 超时前其实已经加载完成（load 事件可能已被错过）——按成功处理
+    const img = imgRef.value;
+    if (img?.complete && !isJunkImage(img)) {
+      markLoaded(img);
+      return;
+    }
+    advance();
   }, candidate.timeout);
 }
 
@@ -120,19 +156,11 @@ function advance() {
 
 function handleImgLoad(event: Event) {
   const img = event.target as HTMLImageElement;
-  // naturalWidth 为 0 说明图片解码失败，继续降级
-  if (!img.naturalWidth) {
+  if (isJunkImage(img)) {
     advance();
     return;
   }
-
-  isLoaded.value = true;
-  clearTimer();
-
-  // 1x1 之类的占位图不写入记忆，避免被其他卡片复用
-  if (img.naturalWidth > 1 && domain.value) {
-    rememberFaviconResolution(domain.value, img.currentSrc || img.src);
-  }
+  markLoaded(img);
 }
 
 function handleImgError() {
