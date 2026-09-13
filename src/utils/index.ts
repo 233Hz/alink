@@ -74,28 +74,79 @@ export function getFaviconUrl(rawUrl: string): string {
 }
 
 /**
+ * Favicon 候选：url 为目标地址，timeout 为该候选能容忍的最长等待时间。
+ *
+ * 为什么必须有 timeout：部分海外图标服务在受限网络下是「静默丢包」——
+ * 请求既不返回也不报错，img 的 @error 永远不会触发，整条兜底链路会被
+ * 永久卡死在第一个候选上，表现为图标位置一直空白。
+ */
+export interface FaviconCandidate {
+  url: string;
+  timeout: number;
+}
+
+/** 单个候选的默认等待上限（毫秒） */
+const FAVICON_TIMEOUT_DEFAULT = 3500;
+/** 受限网络下会静默丢包的服务，给更短的超时以减少无谓等待 */
+const FAVICON_TIMEOUT_OVERSEAS = 1500;
+
+/** 这些服务在受限网络下不会返回错误，只会挂起 */
+const OVERSEAS_HOSTS = ['icons.duckduckgo.com', 'google.com'];
+
+function makeCandidate(url: string): FaviconCandidate {
+  const timeout = OVERSEAS_HOSTS.some((host) => url.includes(host))
+    ? FAVICON_TIMEOUT_OVERSEAS
+    : FAVICON_TIMEOUT_DEFAULT;
+  return { url, timeout };
+}
+
+/**
+ * 本会话内已解析成功的图标地址（domain -> url）。
+ * 同一域名往往出现多张卡片，记下来可避免每张卡片都重走一遍失败链路。
+ */
+const resolvedFaviconCache = new Map<string, string>();
+
+export function rememberFaviconResolution(domain: string, url: string): void {
+  if (domain && url && !resolvedFaviconCache.has(domain)) {
+    resolvedFaviconCache.set(domain, url);
+  }
+}
+
+export function recallFaviconResolution(domain: string): string | null {
+  return resolvedFaviconCache.get(domain) ?? null;
+}
+
+/**
  * 获取多级兜底 Favicon 候选地址列表
  * 关键策略：
  * 1. 子域名（Subdomain）优先，失败后自动穿透尝试根域名（Apex Domain）
  * 2. 优先使用真实返回 404 的高质量服务（Icon Horse / DuckDuckGo），避免假 200 截断兜底
  * 3. 站点根目录 /favicon.ico 直链
- * 4. Google S2 备用
+ * 4. 每个候选都带独立超时；Google S2 作为海外/代理环境备用
  */
-export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | null): string[] {
-  const candidates: string[] = [];
+export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | null): FaviconCandidate[] {
+  const candidates: FaviconCandidate[] = [];
 
-  // Tier 0: 用户自定义图标
-  if (
-    customIconUrl &&
-    customIconUrl.trim() &&
-    !customIconUrl.endsWith('/favicon.ico')
-  ) {
-    candidates.push(customIconUrl.trim());
+  const custom = customIconUrl && customIconUrl.trim() && !customIconUrl.endsWith('/favicon.ico')
+    ? customIconUrl.trim()
+    : '';
+
+  // Tier 0: 用户自定义图标，优先级最高
+  if (custom) {
+    candidates.push({ url: custom, timeout: FAVICON_TIMEOUT_DEFAULT });
   }
 
   const domain = extractDomain(rawUrl);
   if (!domain) {
     return candidates;
+  }
+
+  // Tier 1: 本会话已成功解析过的结果直接置顶（用户显式指定图标时不参与）
+  if (!custom) {
+    const remembered = recallFaviconResolution(domain);
+    if (remembered) {
+      candidates.push({ url: remembered, timeout: FAVICON_TIMEOUT_DEFAULT });
+    }
   }
 
   const apex = extractApexDomain(domain);
@@ -108,19 +159,25 @@ export function getFaviconCandidates(rawUrl: string, customIconUrl?: string | nu
   for (const d of domains) {
     const enc = encodeURIComponent(d);
     // 1. Icon Horse (Cloudflare 全球 CDN，真实 404，高清 PNG/SVG)
-    candidates.push(`https://icon.horse/icon/${enc}`);
+    candidates.push(makeCandidate(`https://icon.horse/icon/${enc}`));
     // 2. DuckDuckGo (国外/大厂站点覆盖极广，返回标准 404)
-    candidates.push(`https://icons.duckduckgo.com/ip3/${enc}.ico`);
+    candidates.push(makeCandidate(`https://icons.duckduckgo.com/ip3/${enc}.ico`));
     // 3. Cravatar (国内源快速缓存)
-    candidates.push(`https://cn.cravatar.com/favicon/api/index.php?url=${enc}`);
+    candidates.push(makeCandidate(`https://cn.cravatar.com/favicon/api/index.php?url=${enc}`));
     // 4. 源站根目录直链
-    candidates.push(`https://${d}/favicon.ico`);
+    candidates.push(makeCandidate(`https://${d}/favicon.ico`));
   }
 
   // 备选: Google S2 (海外/开启代理环境备用)
-  candidates.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
+  candidates.push(makeCandidate(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`));
 
-  return Array.from(new Set(candidates));
+  // 去重（保留首次出现的超时配置）
+  const seen = new Set<string>();
+  return candidates.filter((c) => {
+    if (seen.has(c.url)) return false;
+    seen.add(c.url);
+    return true;
+  });
 }
 
 export function getWebsiteIconUrl(website: { icon_url?: string | null; url: string }): string {
