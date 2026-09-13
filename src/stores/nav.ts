@@ -1,16 +1,35 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { supabase } from '../lib/supabase';
 import type { Category, Website, CategoryFormData, WebsiteFormData } from '../types';
 import { useAuthStore } from './auth';
+import {
+  readNavCache,
+  writeNavCache,
+  clearNavCache,
+  readActiveCategoryId,
+  writeActiveCategoryId,
+} from '../lib/persistence';
 
 export const useNavStore = defineStore('nav', () => {
   const categories = ref<Category[]>([]);
   const websites = ref<Website[]>([]);
-  const activeCategoryId = ref<string>('ALL');
+  const activeCategoryId = ref<string>(readActiveCategoryId() || 'ALL');
   const searchQuery = ref<string>('');
-  const loading = ref<boolean>(false);
+  // 初始即为 true：应用刚启动、尚未拿到任何数据（缓存或网络），
+  // 避免首帧误判为「没有内容」而闪现空状态。
+  const loading = ref<boolean>(true);
   const error = ref<string | null>(null);
+
+  // --- 本地缓存相关状态 ---
+  /** 内存中的数据是否来自/已写入本地缓存（即首屏无需等待网络） */
+  const hydratedFromCache = ref<boolean>(false);
+  /** 缓存归属的用户 ID，用于多账号切换时判定是否串号 */
+  const cachedUserId = ref<string | null>(null);
+  /** 最近一次成功同步时间戳 */
+  const lastSyncedAt = ref<number | null>(null);
+  /** 后台静默校验中（不影响界面交互） */
+  const isRevalidating = ref<boolean>(false);
 
   const authStore = useAuthStore();
 
@@ -40,6 +59,14 @@ export const useNavStore = defineStore('nav', () => {
   });
 
   const totalWebsitesCount = computed(() => websites.value.length);
+
+  /** 是否已有可渲染的内容（无论来自缓存还是网络），用于决定是否展示首屏骨架 */
+  const hasContent = computed(() => categories.value.length > 0 || websites.value.length > 0);
+
+  // 记住用户最后停留的分类，下次打开直接恢复
+  watch(activeCategoryId, (id) => {
+    writeActiveCategoryId(id);
+  });
 
   // Filtered websites based on activeCategory and searchQuery
   const filteredWebsites = computed(() => {
@@ -99,70 +126,145 @@ export const useNavStore = defineStore('nav', () => {
     return groups;
   });
 
-  function handleDbError(err: any): never {
-    console.error('Database operation failed:', err);
-    if (
+  /** 判定错误是否源于会话失效 / RLS 拒绝 */
+  function isSessionError(err: any): boolean {
+    return (
       err?.message?.includes('violates row-level security') ||
       err?.code === '42501' ||
       err?.status === 401 ||
       err?.statusCode === '401'
-    ) {
+    );
+  }
+
+  function handleDbError(err: any): never {
+    console.error('Database operation failed:', err);
+    if (isSessionError(err)) {
       throw new Error('登录凭证已失效或未生效，请重新登录后再试');
     }
     throw err;
   }
 
-  // Fetch all data for current user
-  async function fetchData() {
-    loading.value = true;
-    error.value = null;
+  const LEGACY_GUEST_KEYS = ['alink_guest_categories', 'alink_guest_websites'];
 
+  function dropLegacyGuestStorage() {
     try {
-      // Clean up legacy guest localStorage if present
-      localStorage.removeItem('alink_guest_categories');
-      localStorage.removeItem('alink_guest_websites');
-
-      if (authStore.user && !authStore.session) {
-        await authStore.ensureSession();
-      }
-
-      if (authStore.isAuthenticated && authStore.user) {
-        // 1. Fetch categories
-        const { data: catData, error: catError } = await supabase
-          .from('categories')
-          .select('*')
-          .order('order_index', { ascending: true });
-
-        if (catError) throw catError;
-
-        // 2. Fetch websites
-        const { data: webData, error: webError } = await supabase
-          .from('websites')
-          .select('*')
-          .order('order_index', { ascending: true });
-
-        if (webError) throw webError;
-
-        categories.value = catData || [];
-        websites.value = webData || [];
-      } else {
-        categories.value = [];
-        websites.value = [];
-      }
-    } catch (err: any) {
-      console.error('Error fetching navigation data:', err);
-      if (
-        err?.message?.includes('violates row-level security') ||
-        err?.code === '42501' ||
-        err?.status === 401
-      ) {
-        error.value = '登录凭证已失效，请重新登录';
-      } else {
-        error.value = err.message || '获取数据失败';
-      }
-    } finally {
-      loading.value = false;
+      LEGACY_GUEST_KEYS.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      /* 忽略 */
     }
+  }
+
+  /** 缓存里记着的分类可能已被删除，避免恢复出一个空白页面 */
+  function reconcileActiveCategory() {
+    const id = activeCategoryId.value;
+    if (id === 'ALL' || id === 'UNCATEGORIZED') return;
+    if (!categories.value.some((c) => c.id === id)) {
+      activeCategoryId.value = 'ALL';
+    }
+  }
+
+  /**
+   * 用本地缓存同步填充内存数据 —— 同步执行、零网络、零等待。
+   * 返回是否成功恢复了可用内容。
+   */
+  function hydrateFromCache(): boolean {
+    dropLegacyGuestStorage();
+    if (hydratedFromCache.value) return hasContent.value;
+
+    const cached = readNavCache();
+    if (!cached) return false;
+
+    categories.value = cached.categories;
+    websites.value = cached.websites;
+    cachedUserId.value = cached.userId;
+    lastSyncedAt.value = cached.updatedAt || null;
+    hydratedFromCache.value = true;
+    reconcileActiveCategory();
+    return hasContent.value;
+  }
+
+  /** 把当前内存数据落盘，供下次冷启动秒开 */
+  function persistCache() {
+    const userId = authStore.user?.id;
+    if (!userId) return;
+    if (writeNavCache(userId, categories.value, websites.value)) {
+      cachedUserId.value = userId;
+      lastSyncedAt.value = Date.now();
+    }
+  }
+
+  /** 登出 / 切换账号时彻底清空，防止上一个账号的数据残留 */
+  function resetNavState() {
+    categories.value = [];
+    websites.value = [];
+    hydratedFromCache.value = false;
+    cachedUserId.value = null;
+    lastSyncedAt.value = null;
+    clearNavCache();
+  }
+
+  let inflightFetch: Promise<void> | null = null;
+
+  /**
+   * 拉取数据：先同步命中缓存让界面立即可用，再在后台静默重新校验。
+   * 并发调用会自动复用同一个进行中的请求。
+   */
+  async function fetchData(): Promise<void> {
+    // 1) 首屏：本地缓存直接渲染，不等网络
+    hydrateFromCache();
+
+    // 2) 已有请求在飞行中则复用，避免重复拉取
+    if (inflightFetch) return inflightFetch;
+
+    inflightFetch = (async () => {
+      // 只有「完全没东西可展示」时才让用户看到加载态
+      loading.value = !hasContent.value;
+      isRevalidating.value = true;
+      error.value = null;
+
+      try {
+        if (authStore.user && !authStore.session) {
+          await authStore.ensureSession();
+        }
+
+        if (!authStore.isAuthenticated || !authStore.user) {
+          resetNavState();
+          return;
+        }
+
+        // 缓存属于其他账号：先丢弃，避免短暂串号展示
+        if (cachedUserId.value && cachedUserId.value !== authStore.user.id) {
+          categories.value = [];
+          websites.value = [];
+        }
+
+        // 两张表并行拉取，缩短网络往返
+        const [catRes, webRes] = await Promise.all([
+          supabase.from('categories').select('*').order('order_index', { ascending: true }),
+          supabase.from('websites').select('*').order('order_index', { ascending: true }),
+        ]);
+
+        if (catRes.error) throw catRes.error;
+        if (webRes.error) throw webRes.error;
+
+        categories.value = catRes.data || [];
+        websites.value = webRes.data || [];
+        reconcileActiveCategory();
+
+        hydratedFromCache.value = true;
+        persistCache();
+      } catch (err: any) {
+        console.error('Error fetching navigation data:', err);
+        // 网络失败时保留缓存数据继续可用，仅以横幅提示同步失败
+        error.value = isSessionError(err) ? '登录凭证已失效，请重新登录' : err?.message || '获取数据失败';
+      } finally {
+        loading.value = false;
+        isRevalidating.value = false;
+        inflightFetch = null;
+      }
+    })();
+
+    return inflightFetch;
   }
 
   // --- Category Actions ---
@@ -192,6 +294,7 @@ export const useNavStore = defineStore('nav', () => {
     if (err) handleDbError(err);
     if (newCat) {
       categories.value.push(newCat);
+      persistCache();
     }
     return newCat;
   }
@@ -221,6 +324,7 @@ export const useNavStore = defineStore('nav', () => {
     const idx = categories.value.findIndex(c => c.id === id);
     if (idx !== -1 && updated) {
       categories.value[idx] = updated;
+      persistCache();
     }
     return updated;
   }
@@ -258,6 +362,7 @@ export const useNavStore = defineStore('nav', () => {
     if (activeCategoryId.value === id) {
       activeCategoryId.value = 'ALL';
     }
+    persistCache();
   }
 
   async function moveCategoryUp(id: string) {
@@ -313,6 +418,7 @@ export const useNavStore = defineStore('nav', () => {
       const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
       if (err) console.error('Error updating category order:', err);
     }
+    persistCache();
   }
 
   async function reorderCategories(orderedIds: string[]) {
@@ -359,6 +465,7 @@ export const useNavStore = defineStore('nav', () => {
     if (err) handleDbError(err);
     if (newWeb) {
       websites.value.push(newWeb);
+      persistCache();
     }
     return newWeb;
   }
@@ -391,6 +498,7 @@ export const useNavStore = defineStore('nav', () => {
     const idx = websites.value.findIndex(w => w.id === id);
     if (idx !== -1 && updated) {
       websites.value[idx] = updated;
+      persistCache();
     }
     return updated;
   }
@@ -407,6 +515,7 @@ export const useNavStore = defineStore('nav', () => {
     const { error: err } = await supabase.from('websites').delete().eq('id', id);
     if (err) handleDbError(err);
     websites.value = websites.value.filter(w => w.id !== id);
+    persistCache();
   }
 
   async function moveWebsiteUp(id: string) {
@@ -475,6 +584,7 @@ export const useNavStore = defineStore('nav', () => {
       const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
       if (err) console.error('Error updating website order:', err);
     }
+    persistCache();
   }
 
   async function reorderWebsites(_categoryId: string | null, orderedIds: string[]) {
@@ -496,6 +606,10 @@ export const useNavStore = defineStore('nav', () => {
     searchQuery,
     loading,
     error,
+    hydratedFromCache,
+    lastSyncedAt,
+    isRevalidating,
+    hasContent,
     sortedCategories,
     sortedWebsites,
     categoriesWithCounts,
@@ -503,6 +617,8 @@ export const useNavStore = defineStore('nav', () => {
     totalWebsitesCount,
     filteredWebsites,
     groupedCategoriesWithWebsites,
+    hydrateFromCache,
+    resetNavState,
     fetchData,
     createCategory,
     updateCategory,

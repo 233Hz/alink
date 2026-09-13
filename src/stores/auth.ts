@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { clearNavCache } from '../lib/persistence';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
@@ -105,6 +106,8 @@ export const useAuthStore = defineStore('auth', () => {
     await supabase.auth.signOut();
     user.value = null;
     session.value = null;
+    // 清除本地导航缓存，避免下次打开时短暂展示上一个账号的数据
+    clearNavCache();
   }
 
   return {

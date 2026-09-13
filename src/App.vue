@@ -25,15 +25,15 @@
 
       <!-- Main Content Area (Independent scroll) -->
       <main class="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-10">
-        <!-- Global Loading Indicator -->
-        <div v-if="navStore.loading && navStore.websites.length === 0" class="flex flex-col items-center justify-center py-32">
+        <!-- Global Loading Indicator (only when there is nothing cached to show) -->
+        <div v-if="navStore.loading && !navStore.hasContent" class="flex flex-col items-center justify-center py-32">
           <Loader2 class="w-8 h-8 animate-spin mb-3 text-black dark:text-white" />
           <p class="text-xs font-mono text-gray-500 uppercase tracking-widest">正在同步导航数据...</p>
         </div>
 
-        <!-- Global Error Banner -->
+        <!-- Hard Error Banner (no cached data available at all) -->
         <div
-          v-else-if="navStore.error"
+          v-else-if="navStore.error && !navStore.hasContent"
           class="mb-8 p-4 border-2 border-[#ff3366] text-[#ff3366] rounded-none flex items-center justify-between text-xs font-mono"
         >
           <span>{{ navStore.error }}</span>
@@ -45,16 +45,34 @@
           </button>
         </div>
 
-        <!-- Website Grid -->
-        <WebsiteGrid
-          v-else
-          @add-website="openAddWebsiteModal"
-          @add-category="openAddCategoryModal"
-          @edit-website="openEditWebsiteModal"
-          @delete-website="openDeleteWebsiteModal"
-          @move-up-website="handleMoveWebsiteUp"
-          @move-down-website="handleMoveWebsiteDown"
-        />
+        <template v-else>
+          <!-- Soft Warning: cached data stays usable, sync failed in background -->
+          <div
+            v-if="navStore.error"
+            class="mb-6 p-3 border-2 border-[#ff3366] text-[#ff3366] rounded-none flex items-center justify-between gap-3 text-xs font-mono"
+          >
+            <span class="min-w-0 truncate">
+              云端同步失败，当前展示本地缓存数据（{{ navStore.error }}）
+            </span>
+            <button
+              @click="navStore.fetchData"
+              :disabled="navStore.isRevalidating"
+              class="px-3 py-1 border-2 border-[#ff3366] bg-[#ff3366] text-white hover:bg-black hover:border-black font-bold uppercase rounded-none transition-colors disabled:opacity-50 flex-shrink-0"
+            >
+              重试
+            </button>
+          </div>
+
+          <!-- Website Grid -->
+          <WebsiteGrid
+            @add-website="openAddWebsiteModal"
+            @add-category="openAddCategoryModal"
+            @edit-website="openEditWebsiteModal"
+            @delete-website="openDeleteWebsiteModal"
+            @move-up-website="handleMoveWebsiteUp"
+            @move-down-website="handleMoveWebsiteDown"
+          />
+        </template>
       </main>
     </div>
 
@@ -218,10 +236,17 @@ function handleCategoryDeleted() {}
 
 onMounted(async () => {
   themeStore.initTheme();
+
+  // 1) 先用本地缓存瞬间渲染，冷启动不再等待网络
+  navStore.hydrateFromCache();
+
+  // 2) 恢复登录态（读取本地 session，通常无需网络往返）
   await authStore.initAuth();
-  await navStore.fetchData();
   if (!authStore.isAuthenticated) {
     isAuthModalOpen.value = true;
   }
+
+  // 3) 后台静默重新校验，不阻塞任何交互
+  void navStore.fetchData();
 });
 </script>
