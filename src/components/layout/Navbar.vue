@@ -68,14 +68,12 @@
             </div>
           </div>
 
-          <!-- Search Input -->
+          <!-- Search Input：回车由表单的隐式提交触发 handleSearch -->
           <input
             v-model="searchInput"
             @input="handleInput"
-            @keydown.enter="handleEnterKey"
             type="text"
             enterkeyhint="search"
-            autocomplete="off"
             :placeholder="currentEngine.placeholder"
             class="flex-1 min-w-0 h-8 sm:h-9 px-2.5 text-xs sm:text-sm bg-transparent text-black dark:text-white rounded-none focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600"
           />
@@ -280,7 +278,7 @@ function selectEngine(id: string) {
   }
 }
 
-/** 打开外部搜索页；被浏览器拦截弹窗时退回当前标签页跳转，避免"回车没反应" */
+/** 打开外部搜索页；被浏览器拦截弹窗时 window.open 返回 null，退回当前标签页跳转，避免静默失败 */
 function openSearchUrl(url: string) {
   if (!url) return;
   const win = window.open(url, '_blank');
@@ -305,20 +303,6 @@ function handleSearch() {
   }
 
   openSearchUrl(`${currentEngine.value.url}${encodeURIComponent(q)}`);
-}
-
-/**
- * 输入框内回车即搜索。
- *
- * 1. 组合态（中文输入法选词）的回车必须放行给输入法，不能拦截，
- *    否则会让候选词无法上屏；
- * 2. 非组合态下 preventDefault 阻止表单的隐式提交 —— 否则它会和
- *    @submit 一起触发两次，弹出两个标签页。
- */
-function handleEnterKey(e: KeyboardEvent) {
-  if (e.isComposing || e.keyCode === 229) return;
-  e.preventDefault();
-  handleSearch();
 }
 
 function clearSearch() {
