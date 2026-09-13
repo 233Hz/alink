@@ -15,7 +15,12 @@
       </div>
       <button
         @click="isCollapsed = !isCollapsed"
-        class="p-1 mx-auto border border-black dark:border-white rounded-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+        :class="[
+          'p-1 border border-black dark:border-white rounded-none hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors',
+          // 展开时紧贴右边缘（由父级 justify-between 推到末尾）；
+          // 收起后标题隐藏、只剩这一个元素，需要靠 mx-auto 居中
+          isCollapsed ? 'mx-auto' : '',
+        ]"
         :title="isCollapsed ? '展开' : '收起'"
       >
         <ChevronLeft v-if="!isCollapsed" class="w-4 h-4" />
