@@ -1,6 +1,6 @@
 # ALink - 现代化响应式网页聚合与分类导航平台
 
-基于 **Vue 3 + Vite + TypeScript + Tailwind CSS + Pinia** 构建的高性能、自适应、多用户网页聚合导航系统，后端依托 **Supabase (`p2p-drop`)** 进行云端数据持久化和行级安全（Row Level Security, RLS）隔离。
+基于 **Vue 3 + Vite + TypeScript + Tailwind CSS + Pinia** 构建的高性能、自适应、多用户网页聚合导航系统，后端依托 **Supabase (`apps-db`)** 进行云端数据持久化和行级安全（Row Level Security, RLS）隔离。
 
 ---
 
@@ -40,7 +40,7 @@
 | **样式库** | Tailwind CSS v3 + Autoprefixer | 现代化原子化样式与暗黑模式 |
 | **状态管理** | Pinia | 模块化 Store (`auth`, `nav`, `theme`) |
 | **图标集** | `@lucide/vue` | 极简矢量图标，按需 Tree-shaking 优化 |
-| **后端/数据库** | Supabase (`p2p-drop`) | PostgreSQL + Auth + Row Level Security |
+| **后端/数据库** | Supabase (`apps-db`) | PostgreSQL (`web_nav` Schema) + Auth + Row Level Security |
 
 ---
 
@@ -54,10 +54,11 @@ npm.cmd install
 ```
 
 ### 2. 环境变量配置
-项目已预先配置好 `.env` 文件，指向 Supabase `p2p-drop` 数据库：
+项目已预先配置好 `.env` 文件，指向 Supabase `apps-db` 数据库（Schema: `web_nav`）：
 ```env
 VITE_SUPABASE_URL=https://angslcexviasghvjbcqe.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_SCHEMA=web_nav
 ```
 
 ### 3. 启动开发服务器
@@ -76,7 +77,7 @@ npm.cmd run build
 
 ## 🗄️ 数据库表结构说明 (Supabase)
 
-### `public.categories` (分类表)
+### `web_nav.categories` (分类表)
 | 字段 | 类型 | 说明 |
 | :--- | :--- | :--- |
 | `id` | `uuid` | 主键 (默认 `gen_random_uuid()`) |
@@ -86,7 +87,7 @@ npm.cmd run build
 | `order_index` | `integer` | 排序序号（越小越靠前） |
 | `created_at` / `updated_at` | `timestamptz` | 时间戳 |
 
-### `public.websites` (网址表)
+### `web_nav.websites` (网址表)
 | 字段 | 类型 | 说明 |
 | :--- | :--- | :--- |
 | `id` | `uuid` | 主键 (默认 `gen_random_uuid()`) |
