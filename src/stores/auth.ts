@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, clearSupabaseAuthStorage } from '../lib/supabase';
 import { clearNavCache } from '../lib/persistence';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -102,12 +102,43 @@ export const useAuthStore = defineStore('auth', () => {
     return data;
   }
 
-  async function signOut() {
-    await supabase.auth.signOut();
+  /**
+   * 无条件清理本地登录痕迹：内存状态 + 定时器 + LocalStorage 令牌 + 导航缓存。
+   * 供登出流程兜底，保证「点了退出登录就一定是退出」。
+   */
+  async function clearLocalSession() {
+    // 同步部分：立刻切断本页的登录态与本地令牌
     user.value = null;
     session.value = null;
-    // 清除本地导航缓存，避免下次打开时短暂展示上一个账号的数据
+    clearSupabaseAuthStorage();
     clearNavCache();
+    try {
+      await supabase.auth.stopAutoRefresh();
+    } catch {
+      /* 忽略：没有启动自动刷新时可能抛错 */
+    }
+  }
+
+  async function signOut() {
+    const accessToken = session.value?.access_token;
+
+    // 1) 立即同步清理本地：无论后续网络请求是否成功，界面和刷新后的状态都一定是「未登录」
+    await clearLocalSession();
+
+    // 2) 尽力撤销服务端会话（失败也不影响本地已登出的结果）
+    if (accessToken) {
+      try {
+        const { error } = await supabase.auth.admin.signOut(accessToken, 'global');
+        if (error) {
+          console.warn('ALink: 服务端会话撤销失败，本地已登出 -', error.message);
+        }
+      } catch (err) {
+        console.warn('ALink: 服务端会话撤销异常，本地已登出 -', err);
+      }
+    }
+
+    // 3) 兜底：防止 auth 库在请求过程中又回写过会话数据
+    await clearLocalSession();
   }
 
   return {

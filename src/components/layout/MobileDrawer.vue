@@ -248,9 +248,9 @@ function selectCategory(id: string) {
   emit('close');
 }
 
-function handleSignOut() {
-  authStore.signOut();
-  navStore.fetchData();
+async function handleSignOut() {
   emit('close');
+  // 必须等登出流程彻底完成：清理本地会话 + 清空上一个账号的导航数据
+  await authStore.signOut();
 }
 </script>

@@ -165,13 +165,31 @@ export const useNavStore = defineStore('nav', () => {
 
   /**
    * 用本地缓存同步填充内存数据 —— 同步执行、零网络、零等待。
-   * 返回是否成功恢复了可用内容。
+   * 缓存按用户归属：一旦发现缓存属于其他账号就整份丢弃，绝不展示上一个账号的数据。
    */
   function hydrateFromCache(): boolean {
     dropLegacyGuestStorage();
-    if (hydratedFromCache.value) return hasContent.value;
 
-    const cached = readNavCache();
+    const currentUserId = authStore.user?.id ?? null;
+    let cached = readNavCache();
+
+    // 缓存属于其他账号：直接丢弃（内存 + 磁盘）
+    if (cached && currentUserId && cached.userId !== currentUserId) {
+      cached = null;
+      clearNavCache();
+      categories.value = [];
+      websites.value = [];
+      cachedUserId.value = null;
+      hydratedFromCache.value = false;
+      lastSyncedAt.value = null;
+      return false;
+    }
+
+    // 同一账号的缓存已经恢复过，不重复填充
+    if (hydratedFromCache.value && (!currentUserId || cachedUserId.value === currentUserId)) {
+      return hasContent.value;
+    }
+
     if (!cached) return false;
 
     categories.value = cached.categories;
@@ -187,6 +205,8 @@ export const useNavStore = defineStore('nav', () => {
   function persistCache() {
     const userId = authStore.user?.id;
     if (!userId) return;
+    // 内存数据属于其他账号时不落盘，避免把上一个账号的数据写进新账号的缓存
+    if (cachedUserId.value && cachedUserId.value !== userId) return;
     if (writeNavCache(userId, categories.value, websites.value)) {
       cachedUserId.value = userId;
       lastSyncedAt.value = Date.now();
@@ -200,23 +220,55 @@ export const useNavStore = defineStore('nav', () => {
     hydratedFromCache.value = false;
     cachedUserId.value = null;
     lastSyncedAt.value = null;
+    activeCategoryId.value = 'ALL';
     clearNavCache();
   }
 
   let inflightFetch: Promise<void> | null = null;
+  /** 发起在途请求时的用户，用于判断结果是否仍然有效 */
+  let inflightUserId: string | null = null;
+  /** 数据代际：账号一切换就自增，旧请求的结果一律作废 */
+  let dataGeneration = 0;
+
+  // 账号切换 / 登出：丢弃上一个账号的数据并重新拉取，保证快捷入口始终属于当前账号
+  watch(
+    () => authStore.user?.id ?? null,
+    (userId, prevUserId) => {
+      if (userId === prevUserId) return;
+
+      if (prevUserId) {
+        // 登出或换号：作废所有在途请求的结果，清空上个账号的数据
+        dataGeneration += 1;
+        resetNavState();
+        loading.value = false;
+        isRevalidating.value = false;
+        error.value = null;
+      }
+
+      if (userId) {
+        void fetchData();
+      }
+    }
+  );
 
   /**
    * 拉取数据：先同步命中缓存让界面立即可用，再在后台静默重新校验。
-   * 并发调用会自动复用同一个进行中的请求。
+   * 同一账号的并发调用复用同一个请求；账号一旦切换，旧请求结果作废并重新拉取。
    */
   async function fetchData(): Promise<void> {
-    // 1) 首屏：本地缓存直接渲染，不等网络
+    const currentUserId = authStore.user?.id ?? null;
+
+    // 1) 首屏：本地缓存直接渲染，不等网络（缓存归属错误时会在内部丢弃）
     hydrateFromCache();
 
-    // 2) 已有请求在飞行中则复用，避免重复拉取
-    if (inflightFetch) return inflightFetch;
+    // 2) 同一账号的请求在飞行中则复用；账号已切换则不复用，立即开新的
+    if (inflightFetch && inflightUserId === currentUserId) {
+      return inflightFetch;
+    }
 
-    inflightFetch = (async () => {
+    const generation = ++dataGeneration;
+
+    const task: Promise<void> = (async () => {
       // 只有「完全没东西可展示」时才让用户看到加载态
       loading.value = !hasContent.value;
       isRevalidating.value = true;
@@ -228,7 +280,7 @@ export const useNavStore = defineStore('nav', () => {
         }
 
         if (!authStore.isAuthenticated || !authStore.user) {
-          resetNavState();
+          if (generation === dataGeneration) resetNavState();
           return;
         }
 
@@ -244,27 +296,38 @@ export const useNavStore = defineStore('nav', () => {
           supabase.from('websites').select('*').order('order_index', { ascending: true }),
         ]);
 
+        // 请求期间账号发生切换：结果已过期，交给新的请求处理
+        if (generation !== dataGeneration) return;
+
         if (catRes.error) throw catRes.error;
         if (webRes.error) throw webRes.error;
 
         categories.value = catRes.data || [];
         websites.value = webRes.data || [];
+        cachedUserId.value = authStore.user.id;
         reconcileActiveCategory();
 
         hydratedFromCache.value = true;
         persistCache();
       } catch (err: any) {
+        if (generation !== dataGeneration) return;
         console.error('Error fetching navigation data:', err);
         // 网络失败时保留缓存数据继续可用，仅以横幅提示同步失败
         error.value = isSessionError(err) ? '登录凭证已失效，请重新登录' : err?.message || '获取数据失败';
       } finally {
-        loading.value = false;
-        isRevalidating.value = false;
-        inflightFetch = null;
+        // 只有仍是最新代际的请求才收尾（已被新请求取代时不要覆盖新状态）
+        if (generation === dataGeneration) {
+          loading.value = false;
+          isRevalidating.value = false;
+          inflightFetch = null;
+          inflightUserId = null;
+        }
       }
     })();
 
-    return inflightFetch;
+    inflightFetch = task;
+    inflightUserId = currentUserId;
+    return task;
   }
 
   // --- Category Actions ---

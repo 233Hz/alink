@@ -321,10 +321,10 @@ function handleInput() {
 const isUserMenuOpen = ref(false);
 const userMenuRef = ref<HTMLElement | null>(null);
 
-function handleSignOut() {
+async function handleSignOut() {
   isUserMenuOpen.value = false;
-  authStore.signOut();
-  navStore.fetchData();
+  // 必须等登出流程彻底完成：清理本地会话 + 清空上一个账号的导航数据
+  await authStore.signOut();
 }
 
 function handleClickOutside(e: MouseEvent) {
