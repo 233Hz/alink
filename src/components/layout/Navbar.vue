@@ -32,7 +32,7 @@
       </div>
 
       <!-- Center: Web Search Bar with Engine Selector -->
-      <div class="flex-1 min-w-0 max-w-xl mx-1 sm:mx-4">
+      <div class="flex-1 min-w-0 max-w-xl mx-1 sm:mx-4 relative" ref="searchBoxRef">
         <form
           @submit.prevent="handleSearch"
           class="relative flex items-center border-2 border-black dark:border-white bg-white dark:bg-black rounded-none shadow-none"
@@ -68,10 +68,16 @@
             </div>
           </div>
 
-          <!-- Search Input：回车由表单的隐式提交触发 handleSearch -->
+          <!-- Search Input：回车由表单的隐式提交或上下键选中项触发 -->
           <input
+            ref="searchInputRef"
             v-model="searchInput"
             @input="handleInput"
+            @focus="handleInputFocus"
+            @keydown.down.prevent="handleArrowDown"
+            @keydown.up.prevent="handleArrowUp"
+            @keydown.esc.prevent="handleKeyEsc"
+            @keydown.enter="handleInputEnter"
             type="text"
             enterkeyhint="search"
             :placeholder="currentEngine.placeholder"
@@ -99,6 +105,27 @@
             <span class="hidden md:inline">搜索</span>
           </button>
         </form>
+
+        <!-- 搜索内容建议下拉菜单 -->
+        <SearchSuggestions
+          ref="suggestionsComponentRef"
+          :is-open="isSuggestionsOpen"
+          :query="searchInput"
+          :engine-name="currentEngine.name"
+          :history-list="searchHistory"
+          :quick-sites="quickSites"
+          :matched-websites="matchedWebsites"
+          :matched-categories="matchedCategories"
+          :web-suggestions="webSuggestions"
+          :highlighted-index="highlightedIndex"
+          @select-website="handleSelectWebsite"
+          @select-category="handleSelectCategory"
+          @select-query="handleSelectQuery"
+          @fill-query="handleFillQuery"
+          @delete-history="handleDeleteHistory"
+          @clear-history="handleClearHistory"
+          @set-highlight="(idx) => (highlightedIndex = idx)"
+        />
       </div>
 
       <!-- Right: Action Buttons & User Profile (Desktop only, mobile moved to Drawer) -->
@@ -205,6 +232,21 @@ import {
 import { useNavStore } from '../../stores/nav';
 import { useThemeStore } from '../../stores/theme';
 import { useAuthStore } from '../../stores/auth';
+import SearchSuggestions from './SearchSuggestions.vue';
+import {
+  readSearchHistory,
+  addSearchHistoryItem,
+  removeSearchHistoryItem,
+  clearSearchHistory,
+} from '../../lib/persistence';
+import {
+  fetchWebSuggestions,
+  findMatchingWebsites,
+  findMatchingCategories,
+  type MatchedSiteSuggestion,
+  type MatchedCategorySuggestion,
+  type SuggestionItem,
+} from '../../utils/searchSuggestions';
 
 const emit = defineEmits<{
   (e: 'toggle-mobile-sidebar'): void;
@@ -261,10 +303,38 @@ const SEARCH_ENGINES: SearchEngine[] = [
 const selectedEngineId = ref<string>(localStorage.getItem('alink_search_engine') || 'bing');
 const isEngineMenuOpen = ref(false);
 const engineMenuRef = ref<HTMLElement | null>(null);
+
+const searchBoxRef = ref<HTMLElement | null>(null);
+const searchInputRef = ref<HTMLInputElement | null>(null);
+const suggestionsComponentRef = ref<InstanceType<typeof SearchSuggestions> | null>(null);
+
 const searchInput = ref('');
+const isSuggestionsOpen = ref(false);
+const highlightedIndex = ref(-1);
+
+const searchHistory = ref<string[]>(readSearchHistory());
+const matchedWebsites = ref<MatchedSiteSuggestion[]>([]);
+const matchedCategories = ref<MatchedCategorySuggestion[]>([]);
+const webSuggestions = ref<string[]>([]);
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 const currentEngine = computed(() => {
   return SEARCH_ENGINES.find((e) => e.id === selectedEngineId.value) || SEARCH_ENGINES[0];
+});
+
+/** 快捷直达：没有搜索词且无历史时，展示站内前几项常用网址 */
+const quickSites = computed<MatchedSiteSuggestion[]>(() => {
+  const catMap = new Map<string, string>();
+  navStore.categories.forEach((c) => catMap.set(c.id, c.name));
+  return navStore.sortedWebsites.slice(0, 5).map((w) => ({
+    type: 'website' as const,
+    id: w.id,
+    title: w.title,
+    url: w.url,
+    icon_url: w.icon_url,
+    categoryName: w.category_id ? catMap.get(w.category_id) || '已分类' : '未分类',
+  }));
 });
 
 function selectEngine(id: string) {
@@ -276,9 +346,12 @@ function selectEngine(id: string) {
   } else {
     navStore.searchQuery = '';
   }
+  if (searchInput.value.trim()) {
+    handleInput();
+  }
 }
 
-/** 打开外部搜索页；被浏览器拦截弹窗时 window.open 返回 null，退回当前标签页跳转，避免静默失败 */
+/** 打开外部搜索页；被浏览器拦截弹窗时退回当前标签页跳转，避免静默失败 */
 function openSearchUrl(url: string) {
   if (!url) return;
   const win = window.open(url, '_blank');
@@ -289,6 +362,12 @@ function openSearchUrl(url: string) {
 
 function handleSearch() {
   const q = searchInput.value.trim();
+
+  if (q) {
+    searchHistory.value = addSearchHistoryItem(q);
+  }
+  isSuggestionsOpen.value = false;
+  highlightedIndex.value = -1;
 
   // 站内模式：交给 store 做本地过滤，不跳转
   if (currentEngine.value.id === 'local') {
@@ -310,12 +389,152 @@ function clearSearch() {
   if (currentEngine.value.id === 'local') {
     navStore.searchQuery = '';
   }
+  highlightedIndex.value = -1;
+  matchedWebsites.value = [];
+  matchedCategories.value = [];
+  webSuggestions.value = [];
+  searchHistory.value = readSearchHistory();
+  isSuggestionsOpen.value = true;
+  searchInputRef.value?.focus();
 }
 
 function handleInput() {
+  const q = searchInput.value;
   if (currentEngine.value.id === 'local') {
-    navStore.searchQuery = searchInput.value;
+    navStore.searchQuery = q;
   }
+
+  isSuggestionsOpen.value = true;
+  highlightedIndex.value = -1;
+
+  if (!q.trim()) {
+    matchedWebsites.value = [];
+    matchedCategories.value = [];
+    webSuggestions.value = [];
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    return;
+  }
+
+  // 0ms 同步匹配本地数据
+  matchedWebsites.value = findMatchingWebsites(q, navStore.websites, navStore.categories, 5);
+  matchedCategories.value = findMatchingCategories(q, navStore.categories, navStore.websites, 2);
+
+  // 180ms 防抖拉取网络联想词
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(async () => {
+    try {
+      const res = await fetchWebSuggestions(q, currentEngine.value.id);
+      if (searchInput.value.trim() === q.trim()) {
+        webSuggestions.value = res;
+      }
+    } catch {
+      webSuggestions.value = [];
+    }
+  }, 180);
+}
+
+function handleInputFocus() {
+  searchHistory.value = readSearchHistory();
+  isSuggestionsOpen.value = true;
+  if (searchInput.value.trim()) {
+    handleInput();
+  }
+}
+
+function handleArrowDown() {
+  if (!isSuggestionsOpen.value) {
+    isSuggestionsOpen.value = true;
+    highlightedIndex.value = 0;
+    return;
+  }
+  const count = suggestionsComponentRef.value?.getItemCount() || 0;
+  if (count > 0) {
+    highlightedIndex.value = (highlightedIndex.value + 1) % count;
+  }
+}
+
+function handleArrowUp() {
+  if (!isSuggestionsOpen.value) {
+    isSuggestionsOpen.value = true;
+    return;
+  }
+  const count = suggestionsComponentRef.value?.getItemCount() || 0;
+  if (count > 0) {
+    highlightedIndex.value = (highlightedIndex.value - 1 + count) % count;
+  }
+}
+
+function handleKeyEsc() {
+  isSuggestionsOpen.value = false;
+  highlightedIndex.value = -1;
+}
+
+function handleInputEnter(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  if (isSuggestionsOpen.value && highlightedIndex.value >= 0) {
+    const selected = suggestionsComponentRef.value?.getSelectedItem();
+    if (selected) {
+      e.preventDefault();
+      handleExecuteSuggestion(selected);
+    }
+  }
+}
+
+function handleExecuteSuggestion(item: SuggestionItem) {
+  if (item.type === 'website') {
+    handleSelectWebsite(item);
+  } else if (item.type === 'category') {
+    handleSelectCategory(item);
+  } else if (item.type === 'history' || item.type === 'web') {
+    handleSelectQuery(item.query);
+  }
+}
+
+function handleSelectWebsite(site: MatchedSiteSuggestion) {
+  if (searchInput.value.trim()) {
+    searchHistory.value = addSearchHistoryItem(searchInput.value.trim());
+  }
+  isSuggestionsOpen.value = false;
+  highlightedIndex.value = -1;
+  openSearchUrl(site.url);
+}
+
+function handleSelectCategory(cat: MatchedCategorySuggestion) {
+  navStore.activeCategoryId = cat.id;
+  isSuggestionsOpen.value = false;
+  highlightedIndex.value = -1;
+}
+
+function handleSelectQuery(q: string) {
+  searchInput.value = q;
+  searchHistory.value = addSearchHistoryItem(q);
+  isSuggestionsOpen.value = false;
+  highlightedIndex.value = -1;
+  if (currentEngine.value.id === 'local') {
+    navStore.searchQuery = q;
+  } else {
+    openSearchUrl(`${currentEngine.value.url}${encodeURIComponent(q)}`);
+  }
+}
+
+function handleFillQuery(q: string) {
+  searchInput.value = q;
+  handleInput();
+  searchInputRef.value?.focus();
+}
+
+function handleDeleteHistory(q: string) {
+  searchHistory.value = removeSearchHistoryItem(q);
+}
+
+function handleClearHistory() {
+  clearSearchHistory();
+  searchHistory.value = [];
 }
 
 const isUserMenuOpen = ref(false);
@@ -323,16 +542,20 @@ const userMenuRef = ref<HTMLElement | null>(null);
 
 async function handleSignOut() {
   isUserMenuOpen.value = false;
-  // 必须等登出流程彻底完成：清理本地会话 + 清空上一个账号的导航数据
   await authStore.signOut();
 }
 
 function handleClickOutside(e: MouseEvent) {
-  if (userMenuRef.value && !userMenuRef.value.contains(e.target as Node)) {
+  const target = e.target as Node;
+  if (userMenuRef.value && !userMenuRef.value.contains(target)) {
     isUserMenuOpen.value = false;
   }
-  if (engineMenuRef.value && !engineMenuRef.value.contains(e.target as Node)) {
+  if (engineMenuRef.value && !engineMenuRef.value.contains(target)) {
     isEngineMenuOpen.value = false;
+  }
+  if (searchBoxRef.value && !searchBoxRef.value.contains(target)) {
+    isSuggestionsOpen.value = false;
+    highlightedIndex.value = -1;
   }
 }
 
@@ -341,6 +564,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
   window.removeEventListener('click', handleClickOutside);
 });
 </script>

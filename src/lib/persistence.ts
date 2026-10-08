@@ -139,3 +139,54 @@ export function writeActiveCategoryId(id: string): void {
     /* 忽略 */
   }
 }
+
+const SEARCH_HISTORY_KEY = 'alink_search_history_v1';
+const MAX_SEARCH_HISTORY = 10;
+
+export function readSearchHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function writeSearchHistory(history: string[]): boolean {
+  try {
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_SEARCH_HISTORY)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function addSearchHistoryItem(query: string): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return readSearchHistory();
+  const current = readSearchHistory();
+  const filtered = current.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+  const updated = [trimmed, ...filtered].slice(0, MAX_SEARCH_HISTORY);
+  writeSearchHistory(updated);
+  return updated;
+}
+
+export function removeSearchHistoryItem(query: string): string[] {
+  const trimmed = query.trim();
+  const current = readSearchHistory();
+  const updated = current.filter((item) => item.toLowerCase() !== trimmed.toLowerCase());
+  writeSearchHistory(updated);
+  return updated;
+}
+
+export function clearSearchHistory(): void {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  } catch {
+    /* 忽略 */
+  }
+}
+
