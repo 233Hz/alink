@@ -69,8 +69,6 @@
             @add-category="openAddCategoryModal"
             @edit-website="openEditWebsiteModal"
             @delete-website="openDeleteWebsiteModal"
-            @move-up-website="handleMoveWebsiteUp"
-            @move-down-website="handleMoveWebsiteDown"
           />
         </template>
       </main>
@@ -199,16 +197,6 @@ async function openDeleteWebsiteModal(site: Website) {
   if (confirm(`确认要删除网址 “${site.title}” 吗？`)) {
     await navStore.deleteWebsite(site.id);
   }
-}
-
-async function handleMoveWebsiteUp(site: Website) {
-  if (!checkAuth()) return;
-  await navStore.moveWebsiteUp(site.id);
-}
-
-async function handleMoveWebsiteDown(site: Website) {
-  if (!checkAuth()) return;
-  await navStore.moveWebsiteDown(site.id);
 }
 
 function handleWebsiteSaved() {}

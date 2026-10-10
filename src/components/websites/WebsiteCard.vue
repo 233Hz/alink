@@ -41,15 +41,15 @@
           </h3>
         </a>
 
-        <!-- Right Action Items: Order Badge + Menu -->
+        <!-- Right Action Items: Drag Handle + Menu -->
         <div class="flex items-center gap-1.5 flex-shrink-0 ml-1">
-          <!-- Order badge -->
-          <span
-            class="text-xs font-mono px-1.5 py-0.5 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none whitespace-nowrap"
-            title="排序序号"
+          <!-- Drag Handle -->
+          <div
+            class="card-drag-handle cursor-grab active:cursor-grabbing p-1 border border-black dark:border-white group-hover:border-white dark:group-hover:border-black rounded-none transition-colors touch-none"
+            title="按住拖拽排序"
           >
-            #{{ website.order_index }}
-          </span>
+            <GripVertical class="w-3.5 h-3.5" />
+          </div>
 
           <!-- Dropdown trigger -->
           <div class="relative" ref="menuRef">
@@ -73,32 +73,6 @@
               >
                 <Pencil class="w-3.5 h-3.5" />
                 编辑网址
-              </button>
-              <button
-                @click="handleMoveUp"
-                :disabled="isFirst"
-                :class="[
-                  'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
-                  isFirst
-                    ? 'opacity-30 cursor-not-allowed'
-                    : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
-                ]"
-              >
-                <ArrowUp class="w-3.5 h-3.5" />
-                向前移动
-              </button>
-              <button
-                @click="handleMoveDown"
-                :disabled="isLast"
-                :class="[
-                  'w-full px-3 py-1.5 text-left text-xs font-bold flex items-center gap-2 transition-colors duration-200',
-                  isLast
-                    ? 'opacity-30 cursor-not-allowed'
-                    : 'hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black',
-                ]"
-              >
-                <ArrowDown class="w-3.5 h-3.5" />
-                向后移动
               </button>
               <div class="border-t border-black dark:border-white my-1"></div>
               <button
@@ -131,22 +105,18 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ExternalLink, MoreVertical, Pencil, Trash2, ArrowUp, ArrowDown } from '@lucide/vue';
+import { ExternalLink, MoreVertical, Pencil, Trash2, GripVertical } from '@lucide/vue';
 import type { Website } from '../../types';
 import { normalizeUrl } from '../../utils';
 import WebsiteIcon from '../common/WebsiteIcon.vue';
 
 const props = defineProps<{
   website: Website;
-  isFirst?: boolean;
-  isLast?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'edit', website: Website): void;
   (e: 'delete', website: Website): void;
-  (e: 'move-up', website: Website): void;
-  (e: 'move-down', website: Website): void;
 }>();
 
 const isMenuOpen = ref(false);
@@ -172,16 +142,6 @@ function handleEdit() {
 function handleDelete() {
   isMenuOpen.value = false;
   emit('delete', props.website);
-}
-
-function handleMoveUp() {
-  isMenuOpen.value = false;
-  emit('move-up', props.website);
-}
-
-function handleMoveDown() {
-  isMenuOpen.value = false;
-  emit('move-down', props.website);
 }
 
 onMounted(() => {

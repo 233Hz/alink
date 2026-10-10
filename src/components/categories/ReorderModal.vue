@@ -18,6 +18,7 @@
         <button
           @click="close"
           class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+          title="关闭"
         >
           <X class="w-4 h-4" />
         </button>
@@ -35,7 +36,7 @@
           ]"
         >
           <Folder class="w-4 h-4" />
-          <span>分类排序 ({{ localCategories.length }})</span>
+          <span>分类拖拽排序 ({{ localCategories.length }})</span>
         </button>
         <button
           @click="activeTab = 'websites'"
@@ -47,11 +48,11 @@
           ]"
         >
           <Globe class="w-4 h-4" />
-          <span>网址排序</span>
+          <span>网址拖拽排序</span>
         </button>
       </div>
 
-      <!-- Pinned Notification Banner (Always visible, never hidden by scroll) -->
+      <!-- Pinned Notification Banner -->
       <div
         v-if="statusMsg"
         class="px-4 sm:px-6 py-2.5 bg-black text-white dark:bg-white dark:text-black font-bold font-mono text-xs border-b-2 border-black dark:border-white flex items-center justify-between z-20 flex-shrink-0"
@@ -71,7 +72,7 @@
         </button>
       </div>
 
-      <!-- Fixed Category Filter Bar (Visible only when Websites Sorting Tab is active) -->
+      <!-- Category Filter Bar (Websites Tab Only) -->
       <div
         v-if="activeTab === 'websites'"
         class="px-4 sm:px-6 py-2.5 sm:py-3 border-b-2 border-black dark:border-white bg-gray-50 dark:bg-neutral-900 flex items-center justify-between gap-3 flex-shrink-0 relative z-30"
@@ -104,7 +105,7 @@
               />
             </button>
 
-            <!-- Invisible backdrop to close dropdown anywhere on click/touch -->
+            <!-- Invisible backdrop -->
             <div
               v-if="isCatDropdownOpen"
               class="fixed inset-0 z-40 bg-transparent"
@@ -112,7 +113,7 @@
               @touchstart.passive="isCatDropdownOpen = false"
             />
 
-            <!-- Custom Minimalist Flat Dropdown Menu -->
+            <!-- Dropdown Menu -->
             <div
               v-if="isCatDropdownOpen"
               @click.stop
@@ -150,23 +151,38 @@
 
       <!-- Tab Content Area -->
       <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        <!-- TAB 1: Categories Sorting -->
+        <!-- TAB 1: Categories Drag Sorting -->
         <div v-if="activeTab === 'categories'" class="space-y-4">
           <p class="text-xs font-mono text-gray-500">
-            可通过按钮上下移动，或直接修改序号调整顺序（数字越小越靠前）：
+            按住左侧把手拖动可调整分类顺序，支持 PC 鼠标与移动端触摸：
           </p>
 
-          <div v-if="localCategories.length > 0" class="space-y-2">
+          <div v-if="localCategories.length > 0" ref="categoriesListRef" class="space-y-2">
             <div
               v-for="(cat, index) in localCategories"
               :key="cat.id"
-              class="flex items-center justify-between p-2.5 sm:p-3 border-2 border-black dark:border-white bg-white dark:bg-black gap-2 sm:gap-3 rounded-none"
+              :data-id="cat.id"
+              class="group flex items-center justify-between p-2.5 sm:p-3 border-2 border-black dark:border-white bg-white dark:bg-black gap-2 sm:gap-3 rounded-none transition-colors"
             >
-              <!-- Icon & Name -->
-              <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <!-- Left: Drag Handle, Number Badge, Icon, Name -->
+              <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                <div
+                  class="drag-handle cursor-grab active:cursor-grabbing p-1.5 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none flex items-center justify-center flex-shrink-0 transition-colors touch-none"
+                  title="按住拖拽调整顺序"
+                >
+                  <GripVertical class="w-4 h-4" />
+                </div>
+
+                <span
+                  class="text-xs font-mono font-bold px-1.5 py-0.5 border border-black dark:border-white bg-gray-50 dark:bg-neutral-900 rounded-none whitespace-nowrap flex-shrink-0"
+                >
+                  #{{ index + 1 }}
+                </span>
+
                 <div class="w-7 h-7 sm:w-8 sm:h-8 border border-black dark:border-white flex items-center justify-center rounded-none flex-shrink-0 bg-white">
                   <DynamicIcon :icon="cat.icon" :size="16" custom-class="w-4 h-4" />
                 </div>
+
                 <div class="min-w-0 flex-1">
                   <h4 class="text-xs sm:text-sm font-bold truncate">
                     {{ cat.name }}
@@ -174,38 +190,11 @@
                 </div>
               </div>
 
-              <!-- Order Index Input & Action Buttons -->
-              <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <div class="flex items-center gap-1 sm:gap-1.5">
-                  <label class="text-[10px] sm:text-[11px] font-mono text-gray-500 uppercase hidden xs:inline">序号</label>
-                  <input
-                    v-model.number="cat.order_index"
-                    type="number"
-                    min="0"
-                    class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
-                  />
-                </div>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    type="button"
-                    @click="moveCategoryItem(index, -1)"
-                    :disabled="index === 0"
-                    class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-20 transition-colors"
-                    title="上移"
-                  >
-                    <ArrowUp class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    @click="moveCategoryItem(index, 1)"
-                    :disabled="index === localCategories.length - 1"
-                    class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-20 transition-colors"
-                    title="下移"
-                  >
-                    <ArrowDown class="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              <!-- Right: Count -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[11px] font-mono text-gray-500 border border-black/20 dark:border-white/20 px-2 py-0.5 rounded-none">
+                  {{ getCategoryWebsiteCount(cat.id) }} 个网址
+                </span>
               </div>
             </div>
           </div>
@@ -214,15 +203,33 @@
           </div>
         </div>
 
-        <!-- TAB 2: Websites Sorting -->
+        <!-- TAB 2: Websites Drag Sorting -->
         <div v-else class="space-y-4">
-          <div v-if="filteredLocalWebsites.length > 0" class="space-y-2">
+          <p class="text-xs font-mono text-gray-500">
+            按住左侧把手拖动可调整当前分类下的网址顺序，支持 PC 鼠标与移动端触摸：
+          </p>
+
+          <div v-if="filteredLocalWebsites.length > 0" ref="websitesListRef" class="space-y-2">
             <div
               v-for="(site, index) in filteredLocalWebsites"
               :key="site.id"
-              class="flex items-center justify-between p-2.5 sm:p-3 border-2 border-black dark:border-white bg-white dark:bg-black gap-2 sm:gap-3 rounded-none"
+              :data-id="site.id"
+              class="group flex items-center justify-between p-2.5 sm:p-3 border-2 border-black dark:border-white bg-white dark:bg-black gap-2 sm:gap-3 rounded-none transition-colors"
             >
-              <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div class="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                <div
+                  class="drag-handle cursor-grab active:cursor-grabbing p-1.5 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-none flex items-center justify-center flex-shrink-0 transition-colors touch-none"
+                  title="按住拖拽调整顺序"
+                >
+                  <GripVertical class="w-4 h-4" />
+                </div>
+
+                <span
+                  class="text-xs font-mono font-bold px-1.5 py-0.5 border border-black dark:border-white bg-gray-50 dark:bg-neutral-900 rounded-none whitespace-nowrap flex-shrink-0"
+                >
+                  #{{ index + 1 }}
+                </span>
+
                 <div class="w-7 h-7 sm:w-8 sm:h-8 border border-black dark:border-white flex items-center justify-center overflow-hidden flex-shrink-0 bg-white">
                   <WebsiteIcon
                     :url="site.url"
@@ -233,44 +240,12 @@
                     icon-class="w-4 h-4 sm:w-5 sm:h-5"
                   />
                 </div>
+
                 <div class="min-w-0 flex-1">
                   <h4 class="text-xs sm:text-sm font-bold truncate">
                     {{ site.title }}
                   </h4>
                   <p class="text-[10px] sm:text-[11px] font-mono text-gray-500 truncate">{{ site.url }}</p>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <div class="flex items-center gap-1 sm:gap-1.5">
-                  <label class="text-[10px] sm:text-[11px] font-mono text-gray-500 uppercase hidden xs:inline">序号</label>
-                  <input
-                    v-model.number="site.order_index"
-                    type="number"
-                    min="0"
-                    class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-center text-xs border-2 border-black dark:border-white bg-transparent rounded-none focus:outline-none focus:border-[#ff3366]"
-                  />
-                </div>
-
-                <div class="flex items-center gap-1">
-                  <button
-                    type="button"
-                    @click="moveWebsiteItem(index, -1)"
-                    :disabled="index === 0"
-                    class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-20 transition-colors"
-                    title="上移"
-                  >
-                    <ArrowUp class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    @click="moveWebsiteItem(index, 1)"
-                    :disabled="index === filteredLocalWebsites.length - 1"
-                    class="p-1 border border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black disabled:opacity-20 transition-colors"
-                    title="下移"
-                  >
-                    <ArrowDown class="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -281,46 +256,19 @@
         </div>
       </div>
 
-
       <!-- Footer Actions -->
-      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-black dark:border-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-black">
-        <div class="flex items-center gap-2.5 text-xs font-mono self-start sm:self-center">
-          <button
-            type="button"
-            @click="autoReindex"
-            class="underline hover:text-[#ff3366] transition-colors whitespace-nowrap"
-          >
-            连续重置 (0, 1, 2...)
-          </button>
-          <span class="text-gray-400 dark:text-gray-600">/</span>
-          <button
-            type="button"
-            @click="sortByInputOrder"
-            class="underline hover:text-[#ff3366] transition-colors whitespace-nowrap"
-          >
-            按输入序号重排
-          </button>
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-black dark:border-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-black flex-shrink-0">
+        <div class="text-xs font-mono text-gray-500 flex items-center gap-1.5">
+          <span>拖拽调整顺序后实时生效</span>
         </div>
 
         <div class="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
-          <span v-if="statusMsg" class="text-xs font-mono font-bold text-[#ff3366] hidden sm:inline truncate max-w-[200px]">
-            {{ statusMsg }}
-          </span>
           <button
             type="button"
             @click="close"
-            class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-white text-black dark:bg-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors rounded-none whitespace-nowrap text-center"
+            class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-5 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors rounded-none whitespace-nowrap text-center"
           >
-            关闭
-          </button>
-          <button
-            type="button"
-            @click="saveChanges"
-            :disabled="saving"
-            class="flex-1 sm:flex-initial border-2 border-black dark:border-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs font-bold uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white disabled:opacity-50 transition-colors rounded-none flex items-center justify-center gap-2 whitespace-nowrap text-center"
-          >
-            <Loader2 v-if="saving" class="w-3.5 h-3.5 animate-spin" />
-            <span>保存排序</span>
+            完成
           </button>
         </div>
       </div>
@@ -329,20 +277,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { ref, watch, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import {
   ArrowUpDown,
   X,
   Folder,
   Globe,
-  ArrowUp,
-  ArrowDown,
-  Loader2,
+  GripVertical,
   CheckCircle2,
   AlertCircle,
   ChevronDown,
   Check,
 } from '@lucide/vue';
+import Sortable from 'sortablejs';
 import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
 import DynamicIcon from '../common/DynamicIcon.vue';
@@ -361,17 +308,117 @@ const activeTab = ref<'categories' | 'websites'>('categories');
 const selectedWebsiteCatId = ref<string>('');
 const isCatDropdownOpen = ref(false);
 const catDropdownRef = ref<HTMLElement | null>(null);
-const saving = ref(false);
 const statusMsg = ref('');
 const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
+
+const categoriesListRef = ref<HTMLElement | null>(null);
+const websitesListRef = ref<HTMLElement | null>(null);
+
+let catSortable: Sortable | null = null;
+let webSortable: Sortable | null = null;
+
+function cleanupSortables() {
+  if (catSortable) {
+    catSortable.destroy();
+    catSortable = null;
+  }
+  if (webSortable) {
+    webSortable.destroy();
+    webSortable = null;
+  }
+}
+
+function initSortables() {
+  cleanupSortables();
+  if (!props.isOpen) return;
+
+  if (activeTab.value === 'categories' && categoriesListRef.value) {
+    catSortable = Sortable.create(categoriesListRef.value, {
+      handle: '.drag-handle',
+      animation: 180,
+      ghostClass: 'opacity-25',
+      chosenClass: 'scale-[1.01]',
+      touchStartThreshold: 3,
+      delay: 0,
+      delayOnTouchOnly: true,
+      onEnd: async (evt) => {
+        const { oldIndex, newIndex, from, item } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+        // 还原 DOM 位置，让 Vue 接管重新渲染
+        from.removeChild(item);
+        const targetEl = from.children[oldIndex];
+        if (targetEl) {
+          from.insertBefore(item, targetEl);
+        } else {
+          from.appendChild(item);
+        }
+
+        const nextList = [...localCategories.value];
+        const [moved] = nextList.splice(oldIndex, 1);
+        nextList.splice(newIndex, 0, moved);
+        localCategories.value = nextList;
+
+        const orderedIds = nextList.map((c) => c.id);
+        await navStore.reorderCategories(orderedIds);
+        statusMsg.value = '分类顺序已成功更新';
+      },
+    });
+  } else if (activeTab.value === 'websites' && websitesListRef.value) {
+    webSortable = Sortable.create(websitesListRef.value, {
+      handle: '.drag-handle',
+      animation: 180,
+      ghostClass: 'opacity-25',
+      chosenClass: 'scale-[1.01]',
+      touchStartThreshold: 3,
+      delay: 0,
+      delayOnTouchOnly: true,
+      onEnd: async (evt) => {
+        const { oldIndex, newIndex, from, item } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+        from.removeChild(item);
+        const targetEl = from.children[oldIndex];
+        if (targetEl) {
+          from.insertBefore(item, targetEl);
+        } else {
+          from.appendChild(item);
+        }
+
+        const currentFiltered = [...filteredLocalWebsites.value];
+        const [moved] = currentFiltered.splice(oldIndex, 1);
+        currentFiltered.splice(newIndex, 0, moved);
+
+        const orderedIds = currentFiltered.map((w) => w.id);
+        await navStore.reorderWebsites(selectedWebsiteCatId.value, orderedIds);
+
+        // 同步内存数据
+        const otherSites = localWebsites.value.filter(
+          (w) => w.category_id !== selectedWebsiteCatId.value
+        );
+        currentFiltered.forEach((w, i) => {
+          w.order_index = i;
+        });
+        localWebsites.value = [...otherSites, ...currentFiltered];
+
+        statusMsg.value = '网址顺序已成功更新';
+      },
+    });
+  }
+}
 
 const currentSelectedCategory = computed(() => {
   return navStore.sortedCategories.find((c) => c.id === selectedWebsiteCatId.value) || null;
 });
 
+function getCategoryWebsiteCount(catId: string): number {
+  return navStore.websites.filter((w) => w.category_id === catId).length;
+}
+
 function selectCategory(catId: string) {
   selectedWebsiteCatId.value = catId;
   isCatDropdownOpen.value = false;
+  nextTick(initSortables);
 }
 
 function handleOutsideClick(e: MouseEvent | TouchEvent) {
@@ -379,16 +426,6 @@ function handleOutsideClick(e: MouseEvent | TouchEvent) {
     isCatDropdownOpen.value = false;
   }
 }
-
-onMounted(() => {
-  window.addEventListener('click', handleOutsideClick);
-  window.addEventListener('touchstart', handleOutsideClick, { passive: true });
-});
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleOutsideClick);
-  window.removeEventListener('touchstart', handleOutsideClick);
-});
 
 const localCategories = ref<Category[]>([]);
 const localWebsites = ref<Website[]>([]);
@@ -402,7 +439,6 @@ watch(
       localCategories.value = JSON.parse(JSON.stringify(navStore.sortedCategories));
       localWebsites.value = JSON.parse(JSON.stringify(navStore.sortedWebsites));
 
-      // Default to active category if valid, or first category
       if (
         navStore.activeCategoryId &&
         navStore.activeCategoryId !== 'ALL' &&
@@ -415,137 +451,38 @@ watch(
       } else {
         selectedWebsiteCatId.value = '';
       }
+
+      nextTick(initSortables);
+    } else {
+      cleanupSortables();
     }
   }
 );
 
-const filteredLocalWebsites = computed(() => {
-  if (!selectedWebsiteCatId.value) return [];
-  return localWebsites.value.filter((w) => w.category_id === selectedWebsiteCatId.value);
+watch(activeTab, () => {
+  nextTick(initSortables);
 });
 
-function moveCategoryItem(index: number, direction: -1 | 1) {
-  const target = index + direction;
-  if (target < 0 || target >= localCategories.value.length) return;
-
-  const current = localCategories.value[index];
-  const sibling = localCategories.value[target];
-
-  let currentOrder = current.order_index;
-  let siblingOrder = sibling.order_index;
-
-  if (currentOrder === siblingOrder) {
-    if (direction === -1) {
-      currentOrder = Math.max(0, siblingOrder - 1);
-    } else {
-      currentOrder = siblingOrder + 1;
-    }
-  } else {
-    const temp = currentOrder;
-    currentOrder = siblingOrder;
-    siblingOrder = temp;
-  }
-
-  current.order_index = currentOrder;
-  sibling.order_index = siblingOrder;
-
-  const newCategories = [...localCategories.value];
-  newCategories[index] = sibling;
-  newCategories[target] = current;
-  localCategories.value = newCategories;
-}
-
-function moveWebsiteItem(index: number, direction: -1 | 1) {
-  const list = filteredLocalWebsites.value;
-  const target = index + direction;
-  if (target < 0 || target >= list.length) return;
-
-  const current = list[index];
-  const sibling = list[target];
-
-  const curIdxInAll = localWebsites.value.findIndex(w => w.id === current.id);
-  const sibIdxInAll = localWebsites.value.findIndex(w => w.id === sibling.id);
-
-  if (curIdxInAll === -1 || sibIdxInAll === -1) return;
-
-  let currentOrder = current.order_index;
-  let siblingOrder = sibling.order_index;
-
-  if (currentOrder === siblingOrder) {
-    if (direction === -1) {
-      currentOrder = Math.max(0, siblingOrder - 1);
-    } else {
-      currentOrder = siblingOrder + 1;
-    }
-  } else {
-    const temp = currentOrder;
-    currentOrder = siblingOrder;
-    siblingOrder = temp;
-  }
-
-  current.order_index = currentOrder;
-  sibling.order_index = siblingOrder;
-
-  // Crucial: Swap the actual elements in localWebsites.value so the rows visually move
-  const newWebsites = [...localWebsites.value];
-  newWebsites[curIdxInAll] = sibling;
-  newWebsites[sibIdxInAll] = current;
-  localWebsites.value = newWebsites;
-}
-
-function sortByInputOrder() {
-  if (activeTab.value === 'categories') {
-    localCategories.value = [...localCategories.value].sort((a, b) => a.order_index - b.order_index);
-  } else {
-    localWebsites.value = [...localWebsites.value].sort((a, b) => a.order_index - b.order_index);
-  }
-}
-
-function autoReindex() {
-  if (activeTab.value === 'categories') {
-    localCategories.value.forEach((cat, i) => {
-      cat.order_index = i;
-    });
-  } else {
-    filteredLocalWebsites.value.forEach((site, i) => {
-      site.order_index = i;
-      const original = localWebsites.value.find(w => w.id === site.id);
-      if (original) original.order_index = i;
-    });
-  }
-  statusMsg.value = '序号已重置，请点击“保存排序”';
-}
-
-async function saveChanges() {
-  try {
-    saving.value = true;
-    statusMsg.value = '';
-
-    if (activeTab.value === 'categories') {
-      localCategories.value.sort((a, b) => a.order_index - b.order_index);
-      for (const cat of localCategories.value) {
-        await navStore.updateCategory(cat.id, { order_index: cat.order_index });
-      }
-      statusMsg.value = '分类排序已成功保存！';
-    } else {
-      localWebsites.value.sort((a, b) => a.order_index - b.order_index);
-      for (const site of localWebsites.value) {
-        await navStore.updateWebsite(site.id, { order_index: site.order_index });
-      }
-      statusMsg.value = '网址排序已成功保存！';
-    }
-
-    setTimeout(() => {
-      statusMsg.value = '';
-    }, 3000);
-  } catch (err: any) {
-    statusMsg.value = '保存出错: ' + err.message;
-  } finally {
-    saving.value = false;
-  }
-}
+const filteredLocalWebsites = computed(() => {
+  if (!selectedWebsiteCatId.value) return [];
+  return localWebsites.value
+    .filter((w) => w.category_id === selectedWebsiteCatId.value)
+    .sort((a, b) => a.order_index - b.order_index);
+});
 
 function close() {
+  cleanupSortables();
   emit('close');
 }
+
+onMounted(() => {
+  window.addEventListener('click', handleOutsideClick);
+  window.addEventListener('touchstart', handleOutsideClick, { passive: true });
+});
+
+onUnmounted(() => {
+  cleanupSortables();
+  window.removeEventListener('click', handleOutsideClick);
+  window.removeEventListener('touchstart', handleOutsideClick);
+});
 </script>

@@ -46,18 +46,16 @@
       <!-- Websites Grid -->
       <div
         v-if="navStore.filteredWebsites.length > 0"
+        ref="filteredGridRef"
         class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6"
       >
         <WebsiteCard
-          v-for="(site, idx) in navStore.filteredWebsites"
+          v-for="site in navStore.filteredWebsites"
           :key="site.id"
           :website="site"
-          :is-first="idx === 0"
-          :is-last="idx === navStore.filteredWebsites.length - 1"
+          :data-id="site.id"
           @edit="emit('edit-website', $event)"
           @delete="emit('delete-website', $event)"
-          @move-up="emit('move-up-website', $event)"
-          @move-down="emit('move-down-website', $event)"
         />
       </div>
 
@@ -136,18 +134,16 @@
         <!-- Cards in this category -->
         <div
           v-if="group.websites.length > 0"
+          :ref="(el) => setCategoryGridRef(group.category ? group.category.id : 'uncategorized', el as HTMLElement | null)"
           class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-5 md:gap-6"
         >
           <WebsiteCard
-            v-for="(site, idx) in group.websites"
+            v-for="site in group.websites"
             :key="site.id"
             :website="site"
-            :is-first="idx === 0"
-            :is-last="idx === group.websites.length - 1"
+            :data-id="site.id"
             @edit="emit('edit-website', $event)"
             @delete="emit('delete-website', $event)"
-            @move-up="emit('move-up-website', $event)"
-            @move-down="emit('move-down-website', $event)"
           />
         </div>
         <div
@@ -198,8 +194,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { Plus, FolderPlus, Bookmark } from '@lucide/vue';
+import Sortable from 'sortablejs';
 import { useNavStore } from '../../stores/nav';
 import WebsiteCard from './WebsiteCard.vue';
 import DynamicIcon from '../common/DynamicIcon.vue';
@@ -210,8 +207,6 @@ const emit = defineEmits<{
   (e: 'add-category'): void;
   (e: 'edit-website', website: Website): void;
   (e: 'delete-website', website: Website): void;
-  (e: 'move-up-website', website: Website): void;
-  (e: 'move-down-website', website: Website): void;
 }>();
 
 const navStore = useNavStore();
@@ -245,5 +240,128 @@ const headerSubtitle = computed(() => {
     return `匹配到 ${navStore.filteredWebsites.length} 个项目`;
   }
   return '';
+});
+
+// --- 拖拽排序逻辑 (SortableJS - 支持 PC 鼠标与移动端触控) ---
+const filteredGridRef = ref<HTMLElement | null>(null);
+const categoryGridRefs = new Map<string, HTMLElement>();
+
+function setCategoryGridRef(key: string, el: HTMLElement | null) {
+  if (el) {
+    categoryGridRefs.set(key, el);
+  } else {
+    categoryGridRefs.delete(key);
+  }
+}
+
+const sortableInstances: Sortable[] = [];
+
+function cleanupSortables() {
+  sortableInstances.forEach((s) => s.destroy());
+  sortableInstances.length = 0;
+}
+
+function initSortables() {
+  cleanupSortables();
+
+  // 搜索查询过滤状态下禁止拖动排序，避免数据视图错位
+  if (navStore.searchQuery.trim()) return;
+
+  if (isFilteredView.value && filteredGridRef.value) {
+    const targetCatId =
+      navStore.activeCategoryId === 'UNCATEGORIZED' ? null : navStore.activeCategoryId;
+
+    const s = Sortable.create(filteredGridRef.value, {
+      handle: '.card-drag-handle',
+      animation: 180,
+      ghostClass: 'opacity-25',
+      chosenClass: 'scale-[1.01]',
+      touchStartThreshold: 3,
+      delay: 0,
+      delayOnTouchOnly: true,
+      onEnd: async (evt) => {
+        const { oldIndex, newIndex, from, item } = evt;
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+        // 还原 DOM 节点位置，交由 Vue 虚拟 DOM 驱动渲染
+        from.removeChild(item);
+        const targetEl = from.children[oldIndex];
+        if (targetEl) {
+          from.insertBefore(item, targetEl);
+        } else {
+          from.appendChild(item);
+        }
+
+        const currentList = [...navStore.filteredWebsites];
+        const newOrderedIds = currentList.map((site) => site.id);
+        const [movedId] = newOrderedIds.splice(oldIndex, 1);
+        newOrderedIds.splice(newIndex, 0, movedId);
+
+        await navStore.reorderWebsites(targetCatId, newOrderedIds);
+      },
+    });
+    sortableInstances.push(s);
+  } else {
+    categoryGridRefs.forEach((el, catKey) => {
+      if (!el) return;
+      const targetCatId = catKey === 'uncategorized' ? null : catKey;
+
+      const s = Sortable.create(el, {
+        handle: '.card-drag-handle',
+        animation: 180,
+        ghostClass: 'opacity-25',
+        chosenClass: 'scale-[1.01]',
+        touchStartThreshold: 3,
+        delay: 0,
+        delayOnTouchOnly: true,
+        onEnd: async (evt) => {
+          const { oldIndex, newIndex, from, item } = evt;
+          if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+          from.removeChild(item);
+          const targetEl = from.children[oldIndex];
+          if (targetEl) {
+            from.insertBefore(item, targetEl);
+          } else {
+            from.appendChild(item);
+          }
+
+          const group = navStore.groupedCategoriesWithWebsites.find((g) => {
+            const id = g.category ? g.category.id : 'uncategorized';
+            return id === catKey;
+          });
+          if (!group) return;
+
+          const currentList = [...group.websites];
+          const newOrderedIds = currentList.map((site) => site.id);
+          const [movedId] = newOrderedIds.splice(oldIndex, 1);
+          newOrderedIds.splice(newIndex, 0, movedId);
+
+          await navStore.reorderWebsites(targetCatId, newOrderedIds);
+        },
+      });
+      sortableInstances.push(s);
+    });
+  }
+}
+
+watch(
+  [
+    () => navStore.activeCategoryId,
+    () => navStore.searchQuery,
+    () => navStore.categories.length,
+    () => navStore.websites.length,
+  ],
+  () => {
+    nextTick(initSortables);
+  }
+);
+
+onMounted(() => {
+  nextTick(initSortables);
+});
+
+onUnmounted(() => {
+  cleanupSortables();
 });
 </script>

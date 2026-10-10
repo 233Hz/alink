@@ -63,41 +63,24 @@
           />
         </div>
 
-        <!-- Category and Order in 2 Columns -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <!-- Category Selector -->
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-2">
-              所属分类
-            </label>
-            <select
-              v-model="form.category_id"
-              class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200"
+        <!-- Category Selector -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider mb-2">
+            所属分类
+          </label>
+          <select
+            v-model="form.category_id"
+            class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200"
+          >
+            <option :value="null">未分类 (Uncategorized)</option>
+            <option
+              v-for="cat in navStore.sortedCategories"
+              :key="cat.id"
+              :value="cat.id"
             >
-              <option :value="null">未分类 (Uncategorized)</option>
-              <option
-                v-for="cat in navStore.sortedCategories"
-                :key="cat.id"
-                :value="cat.id"
-              >
-                {{ cat.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Order Index -->
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider mb-2">
-              排序序号
-            </label>
-            <input
-              v-model.number="form.order_index"
-              type="number"
-              min="0"
-              placeholder="0"
-              class="w-full border-0 border-b-2 border-black dark:border-white bg-transparent text-black dark:text-white rounded-none focus:outline-none focus:border-[#ff3366] py-1.5 sm:py-2 text-sm transition-colors duration-200"
-            />
-          </div>
+              {{ cat.name }}
+            </option>
+          </select>
         </div>
 
         <!-- Description -->

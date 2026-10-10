@@ -474,13 +474,16 @@ export const useNavStore = defineStore('nav', () => {
     }
 
     if (!authStore.isAuthenticated || !authStore.user) {
+      persistCache();
       return;
     }
 
-    for (const c of catsToUpdate) {
-      const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
-      if (err) console.error('Error updating category order:', err);
-    }
+    await Promise.all(
+      catsToUpdate.map(async (c) => {
+        const { error: err } = await supabase.from('categories').update({ order_index: c.order_index }).eq('id', c.id);
+        if (err) console.error('Error updating category order:', err);
+      })
+    );
     persistCache();
   }
 
@@ -640,13 +643,16 @@ export const useNavStore = defineStore('nav', () => {
     }
 
     if (!authStore.isAuthenticated || !authStore.user) {
+      persistCache();
       return;
     }
 
-    for (const w of sitesToUpdate) {
-      const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
-      if (err) console.error('Error updating website order:', err);
-    }
+    await Promise.all(
+      sitesToUpdate.map(async (w) => {
+        const { error: err } = await supabase.from('websites').update({ order_index: w.order_index }).eq('id', w.id);
+        if (err) console.error('Error updating website order:', err);
+      })
+    );
     persistCache();
   }
 
