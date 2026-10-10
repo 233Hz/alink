@@ -150,7 +150,7 @@
       </div>
 
       <!-- Tab Content Area -->
-      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+      <div ref="modalScrollContainerRef" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
         <!-- TAB 1: Categories Drag Sorting -->
         <div v-if="activeTab === 'categories'" class="space-y-4">
           <p class="text-xs font-mono text-gray-500">
@@ -294,6 +294,7 @@ import { useNavStore } from '../../stores/nav';
 import type { Category, Website } from '../../types';
 import DynamicIcon from '../common/DynamicIcon.vue';
 import WebsiteIcon from '../common/WebsiteIcon.vue';
+import { createDragAutoScroller } from '../../utils/dragAutoScroll';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -311,13 +312,16 @@ const catDropdownRef = ref<HTMLElement | null>(null);
 const statusMsg = ref('');
 const isErrorStatus = computed(() => statusMsg.value.includes('出错') || statusMsg.value.includes('失败'));
 
+const modalScrollContainerRef = ref<HTMLElement | null>(null);
 const categoriesListRef = ref<HTMLElement | null>(null);
 const websitesListRef = ref<HTMLElement | null>(null);
+const autoScroller = createDragAutoScroller();
 
 let catSortable: Sortable | null = null;
 let webSortable: Sortable | null = null;
 
 function cleanupSortables() {
+  autoScroller.stop();
   if (catSortable) {
     catSortable.destroy();
     catSortable = null;
@@ -338,10 +342,20 @@ function initSortables() {
       animation: 180,
       ghostClass: 'opacity-25',
       chosenClass: 'scale-[1.01]',
+      dragClass: 'opacity-90',
+      fallbackClass: 'opacity-90',
+      forceFallback: true,
+      fallbackOnBody: true,
       touchStartThreshold: 3,
+      fallbackTolerance: 3,
       delay: 0,
       delayOnTouchOnly: true,
+      scroll: false,
+      onStart: (evt) => {
+        autoScroller.start(modalScrollContainerRef.value, (evt as any).originalEvent);
+      },
       onEnd: async (evt) => {
+        autoScroller.stop();
         const { oldIndex, newIndex, from, item } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
@@ -370,10 +384,20 @@ function initSortables() {
       animation: 180,
       ghostClass: 'opacity-25',
       chosenClass: 'scale-[1.01]',
+      dragClass: 'opacity-90',
+      fallbackClass: 'opacity-90',
+      forceFallback: true,
+      fallbackOnBody: true,
       touchStartThreshold: 3,
+      fallbackTolerance: 3,
       delay: 0,
       delayOnTouchOnly: true,
+      scroll: false,
+      onStart: (evt) => {
+        autoScroller.start(modalScrollContainerRef.value, (evt as any).originalEvent);
+      },
       onEnd: async (evt) => {
+        autoScroller.stop();
         const { oldIndex, newIndex, from, item } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 

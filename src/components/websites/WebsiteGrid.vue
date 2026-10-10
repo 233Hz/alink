@@ -200,6 +200,7 @@ import Sortable from 'sortablejs';
 import { useNavStore } from '../../stores/nav';
 import WebsiteCard from './WebsiteCard.vue';
 import DynamicIcon from '../common/DynamicIcon.vue';
+import { createDragAutoScroller } from '../../utils/dragAutoScroll';
 import type { Website } from '../../types';
 
 const emit = defineEmits<{
@@ -242,9 +243,10 @@ const headerSubtitle = computed(() => {
   return '';
 });
 
-// --- 拖拽排序逻辑 (SortableJS - 支持 PC 鼠标与移动端触控) ---
+// --- 拖拽排序逻辑 (SortableJS - 支持 PC 鼠标与移动端触控，边缘及超出视口跟随滚动) ---
 const filteredGridRef = ref<HTMLElement | null>(null);
 const categoryGridRefs = new Map<string, HTMLElement>();
+const autoScroller = createDragAutoScroller();
 
 function setCategoryGridRef(key: string, el: HTMLElement | null) {
   if (el) {
@@ -257,6 +259,7 @@ function setCategoryGridRef(key: string, el: HTMLElement | null) {
 const sortableInstances: Sortable[] = [];
 
 function cleanupSortables() {
+  autoScroller.stop();
   sortableInstances.forEach((s) => s.destroy());
   sortableInstances.length = 0;
 }
@@ -276,10 +279,21 @@ function initSortables() {
       animation: 180,
       ghostClass: 'opacity-25',
       chosenClass: 'scale-[1.01]',
+      dragClass: 'opacity-90',
+      fallbackClass: 'opacity-90',
+      forceFallback: true,
+      fallbackOnBody: true,
       touchStartThreshold: 3,
+      fallbackTolerance: 3,
       delay: 0,
       delayOnTouchOnly: true,
+      scroll: false,
+      onStart: (evt) => {
+        const mainEl = (evt.from.closest('main') || document.querySelector('main')) as HTMLElement | null;
+        autoScroller.start(mainEl, (evt as any).originalEvent);
+      },
       onEnd: async (evt) => {
+        autoScroller.stop();
         const { oldIndex, newIndex, from, item } = evt;
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
@@ -311,10 +325,21 @@ function initSortables() {
         animation: 180,
         ghostClass: 'opacity-25',
         chosenClass: 'scale-[1.01]',
+        dragClass: 'opacity-90',
+        fallbackClass: 'opacity-90',
+        forceFallback: true,
+        fallbackOnBody: true,
         touchStartThreshold: 3,
+        fallbackTolerance: 3,
         delay: 0,
         delayOnTouchOnly: true,
+        scroll: false,
+        onStart: (evt) => {
+          const mainEl = (evt.from.closest('main') || document.querySelector('main')) as HTMLElement | null;
+          autoScroller.start(mainEl, (evt as any).originalEvent);
+        },
         onEnd: async (evt) => {
+          autoScroller.stop();
           const { oldIndex, newIndex, from, item } = evt;
           if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
